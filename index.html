@@ -9,14 +9,27 @@
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
   html, body {
     margin: 0; padding: 0; width: 100%; height: 100%;
-    overflow: hidden; background: #0b1220;
+    overflow: hidden; background: #000;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Malgun Gothic", sans-serif;
     color: #fff; touch-action: none;
+    display: flex; align-items: center; justify-content: center;
   }
   #wrap {
-    position: relative; width: 100vw; height: 100vh;
+    position: relative;
+    /* 모든 기기에서 동일한 9:16 비율 유지 (PC에선 모바일 프레임처럼 보이도록 max-width 캡) */
+    width: min(100vw, calc(100vh * 9 / 16), 420px);
+    height: min(100vh, calc(100vw * 16 / 9), 747px);
+    /* 동적 뷰포트 지원 시 브라우저 UI 변화 대응 */
+    width: min(100vw, calc(100dvh * 9 / 16), 420px);
+    height: min(100dvh, calc(100vw * 16 / 9), 747px);
     background: linear-gradient(180deg, #2a5f6b 0%, #4a8a76 55%, #6fb27a 100%);
     overflow: hidden; cursor: pointer;
+    /* 모바일 프레임 효과 (PC 미리보기용, 실기기에선 화면 꽉 참) */
+    border-radius: 28px;
+    box-shadow:
+      0 20px 60px rgba(0,0,0,0.55),
+      0 0 0 4px #111,
+      inset 0 0 0 1px rgba(255,255,255,0.06);
   }
   canvas { display: block; position: absolute; inset: 0; pointer-events: none; }
   .hud {
@@ -61,8 +74,8 @@
   }
   .btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #7a4a00; }
   #debug {
-    position: absolute; top: 48px; right: 12px; font-size: 10px;
-    background: rgba(0,0,0,0.4); color: #9ff; padding: 3px 6px; border-radius: 6px;
+    position: absolute; bottom: 8px; left: 8px; font-size: 10px;
+    background: rgba(0,0,0,0.55); color: #9ff; padding: 3px 6px; border-radius: 6px;
     z-index: 99; pointer-events: none; font-family: monospace;
   }
   #testBtn {
@@ -72,6 +85,14 @@
     cursor: pointer;
   }
   #testBtn:active { background: rgba(0,0,0,0.8); }
+  #muteBtn {
+    position: absolute; top: 80px; right: 12px; z-index: 20;
+    width: 34px; height: 34px; border-radius: 50%;
+    background: rgba(0,0,0,0.55); color: #fff; border: 1px solid #fff6;
+    font-size: 16px; cursor: pointer; padding: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  #muteBtn:active { background: rgba(0,0,0,0.8); }
 </style>
 </head>
 <body>
@@ -92,6 +113,7 @@
   </div>
 
   <button id="testBtn">전체 과일 테스트</button>
+  <button id="muteBtn" title="소리 켜기/끄기">🔊</button>
   <div id="debug">loading…</div>
 </div>
 
@@ -123,17 +145,17 @@ try { document.getElementById('debug').textContent = 'init…'; } catch(e) {}
 
 // ============ 과일 정의 ============
 const TIERS = [
-  { name: '체리',     color: '#D32F2F', r: 12, face: 'smile'  },                           // 진한 빨강
-  { name: '딸기',     color: '#F48FB1', r: 16, face: 'grin'   },                           // 연분홍 (체리와 뚜렷이 다름)
-  { name: '포도',     color: '#7B1FA2', r: 21, face: 'wink-r' },                           // 보라
-  { name: '귤',       color: '#FB8C00', r: 27, face: 'blush'  },                           // 주황
-  { name: '감',       color: '#FDD835', r: 33, face: 'happy'  },                           // 노랑
-  { name: '사과',     color: '#43A047', r: 40, face: 'cat'    },                           // 초록 (청사과)
-  { name: '배',       color: '#DCE775', color2: '#F9A825', r: 48, face: 'tongue' },        // 연두→골드 (배 느낌)
-  { name: '복숭아',   color: '#FF7043', color2: '#FDD835', r: 56, face: 'blush'  },        // 산호→노랑 (석양)
-  { name: '파인애플', color: '#FFD54F', color2: '#E65100', r: 66, face: 'smug'   },        // 노랑→진주황
-  { name: '멜론',     color: '#9CCC65', color2: '#F06292', r: 76, face: 'wink-l' },        // 연두→핫핑크
-  { name: '감자',     color: '#8D6E63', color2: '#EF6C00', r: 88, face: 'stoic'  },        // 갈색→주황
+  { name: '체리',     color: '#D32F2F', r: 14,  face: 'smile'  },                          // 진한 빨강
+  { name: '딸기',     color: '#FF3D00', r: 20,  face: 'grin'   },                          // 밝은 붉은-주황 (체리/포도와 명확히 구분)
+  { name: '포도',     color: '#7B1FA2', r: 28,  face: 'wink-r' },                          // 보라
+  { name: '귤',       color: '#FB8C00', r: 37,  face: 'blush'  },                          // 주황
+  { name: '감',       color: '#FDD835', r: 47,  face: 'happy'  },                          // 노랑
+  { name: '사과',     color: '#43A047', r: 58,  face: 'cat'    },                          // 초록 (청사과)
+  { name: '배',       color: '#DCE775', color2: '#F9A825', r: 70,  face: 'tongue' },       // 연두→골드 (배 느낌)
+  { name: '복숭아',   color: '#FF7043', color2: '#FDD835', r: 82,  face: 'blush'  },       // 산호→노랑 (석양)
+  { name: '파인애플', color: '#FFD54F', color2: '#E65100', r: 94,  face: 'smug'   },       // 노랑→진주황
+  { name: '멜론',     color: '#9CCC65', color2: '#F06292', r: 106, face: 'wink-l' },       // 연두→핫핑크
+  { name: '감자',     color: '#8D6E63', color2: '#EF6C00', r: 118, face: 'stoic'  },       // 갈색→주황
 ];
 
 // ============ 캔버스 / 렌더링 셋업 ============
@@ -142,21 +164,28 @@ const ctx = canvas.getContext('2d');
 const wrap = document.getElementById('wrap');
 const dbg = document.getElementById('debug');
 
-let W = 0, H = 0, LINE_Y = 0;
+// 모든 기기에서 동일한 논리 해상도 (게임 좌표계)
+const DESIGN_W = 450;
+const DESIGN_H = 800;
+let W = DESIGN_W, H = DESIGN_H, LINE_Y = 0;
 const DPR = Math.min(window.devicePixelRatio || 1, 2);
 
 function resize() {
-  const r = wrap.getBoundingClientRect();
-  W = r.width || window.innerWidth;
-  H = r.height || window.innerHeight;
-  canvas.style.width = W + 'px';
-  canvas.style.height = H + 'px';
-  canvas.width = Math.floor(W * DPR);
-  canvas.height = Math.floor(H * DPR);
-  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-  LINE_Y = Math.max(100, Math.min(H * 0.22, 180));
+  const wrapEl = document.getElementById('wrap');
+  const r = wrapEl.getBoundingClientRect();
+  const cssW = r.width || window.innerWidth;
+  const cssH = r.height || window.innerHeight;
+  // 내부 캔버스 해상도는 실제 화면에 맞춤 (선명도)
+  canvas.width = Math.max(1, Math.floor(cssW * DPR));
+  canvas.height = Math.max(1, Math.floor(cssH * DPR));
+  // 논리 좌표(DESIGN_W × DESIGN_H)를 실제 픽셀로 매핑하는 변환
+  const scale = (cssW / DESIGN_W) * DPR;
+  ctx.setTransform(scale, 0, 0, scale, 0, 0);
+  // 논리 좌표계에서 게임오버 라인 (음소거 버튼 높이 부근)
+  LINE_Y = DESIGN_H * 0.19;
 }
 window.addEventListener('resize', resize);
+window.addEventListener('orientationchange', resize);
 resize();
 
 // ============ 자체 물리 엔진 ============
@@ -165,11 +194,14 @@ const RESTITUTION = 0;    // 반발력 (거의 제거)
 const WALL_REST = 0.02;
 const LINEAR_DAMP = 0.985;
 const ANG_DAMP = 0.9;
+// 핸드폰 하단 곡률/홈 인디케이터 안전 영역 (논리 좌표)
+const SAFE_BOTTOM = 70;
+const SAFE_SIDE = 22; // 나무 트렁크 두께와 일치
 
 let nextId = 1;
 function Fruit(x, y, tier) {
   const r = TIERS[tier].r;
-  const mass = Math.pow(r, 2.8); // 면적보다 훨씬 강한 질량 차이 (큰 과일이 훨씬 무거움)
+  const mass = Math.pow(r, 3.5); // 큰 과일은 훨씬 무거워서 작은 과일이 거의 못 밈
   return {
     id: nextId++,
     x, y, vx: 0, vy: 0,
@@ -197,12 +229,15 @@ function physicsStep(dt) {
     f.angle += f.va * dt;
   }
 
-  // 벽 충돌
+  // 벽 충돌 (안전 영역 적용)
+  const floorY = H - SAFE_BOTTOM;
+  const leftX = SAFE_SIDE;
+  const rightX = W - SAFE_SIDE;
   for (const f of fruits) {
     if (f.dead) continue;
-    if (f.x - f.r < 0)   { f.x = f.r;       f.vx = Math.abs(f.vx) * WALL_REST; }
-    if (f.x + f.r > W)   { f.x = W - f.r;   f.vx = -Math.abs(f.vx) * WALL_REST; }
-    if (f.y + f.r > H)   { f.y = H - f.r;   f.vy = -Math.abs(f.vy) * WALL_REST; f.vx *= 0.85; }
+    if (f.x - f.r < leftX)   { f.x = leftX + f.r;     f.vx = Math.abs(f.vx) * WALL_REST; }
+    if (f.x + f.r > rightX)  { f.x = rightX - f.r;    f.vx = -Math.abs(f.vx) * WALL_REST; }
+    if (f.y + f.r > floorY)  { f.y = floorY - f.r;    f.vy = -Math.abs(f.vy) * WALL_REST; f.vx *= 0.85; }
   }
 
   // 원-원 충돌 (여러 패스: 낑긴 상태에서도 분리되도록)
@@ -211,9 +246,9 @@ function physicsStep(dt) {
     // 각 패스 시작 시 벽 재확인 (무거운 과일이 가벼운 과일을 벽 밖으로 미는 것 방지)
     for (const f of fruits) {
       if (f.dead) continue;
-      if (f.x - f.r < 0) f.x = f.r;
-      if (f.x + f.r > W) f.x = W - f.r;
-      if (f.y + f.r > H) f.y = H - f.r;
+      if (f.x - f.r < leftX) f.x = leftX + f.r;
+      if (f.x + f.r > rightX) f.x = rightX - f.r;
+      if (f.y + f.r > floorY) f.y = floorY - f.r;
     }
     for (let i = 0; i < fruits.length; i++) {
       const a = fruits[i];
@@ -270,9 +305,15 @@ function physicsStep(dt) {
               fruits.push(nf);
               addScore((tIdx + 2) * (tIdx + 3) / 2);
               spawnPop(mx, my, TIERS[tIdx + 1].color, TIERS[tIdx + 1].r);
+              spawnBurst(mx, my, TIERS[tIdx + 1].color, Math.min(20, 10 + tIdx * 2));
+              playMergeSfx(tIdx);
+              haptic(tIdx >= 6 ? 'big' : 'merge');
             } else {
               addScore(100);
               spawnPop(mx, my, TIERS[tIdx].color, TIERS[tIdx].r * 1.4);
+              spawnBurst(mx, my, TIERS[tIdx].color, 30);
+              playMergeSfx(tIdx);
+              haptic('big');
             }
           }
         }
@@ -296,11 +337,17 @@ let currentTier = randomSpawnTier();
 let nextTier = randomSpawnTier();
 
 function randomSpawnTier() {
-  // 가중치: 체리 60% / 딸기 35% / 포도 4% / 귤 1%
+  // 점수에 따라 3~4단계 등장률 증가 (초반엔 거의 안 나옴)
+  // progress 0(초반): 체리 65% / 딸기 31% / 포도 3% / 귤 1%
+  // progress 1(1500점+): 체리 45% / 딸기 33% / 포도 15% / 귤 7%
+  const progress = Math.min(1, score / 1500);
+  const pCherry     = 0.65 - 0.20 * progress;
+  const pStrawberry = 0.31 + 0.02 * progress;
+  const pGrape      = 0.03 + 0.12 * progress;
   const r = Math.random();
-  if (r < 0.60) return 0;
-  if (r < 0.95) return 1;
-  if (r < 0.99) return 2;
+  if (r < pCherry) return 0;
+  if (r < pCherry + pStrawberry) return 1;
+  if (r < pCherry + pStrawberry + pGrape) return 2;
   return 3;
 }
 
@@ -335,7 +382,8 @@ function getEventX(e) {
   else if (e.touches && e.touches[0]) cx = e.touches[0].clientX;
   else if (e.changedTouches && e.changedTouches[0]) cx = e.changedTouches[0].clientX;
   else return null;
-  return cx - rect.left;
+  // CSS 좌표 → 논리 좌표(0~DESIGN_W) 변환
+  return (cx - rect.left) * (DESIGN_W / rect.width);
 }
 
 function onMove(e) {
@@ -403,7 +451,21 @@ function triggerGameOver() {
   gameOver = true;
   document.getElementById('finalScore').textContent = score;
   document.getElementById('overlay').classList.add('show');
+  playGameOverSfx();
+  haptic('gameover');
 }
+document.getElementById('muteBtn').addEventListener('click', (e) => {
+  e.stopPropagation();
+  soundOn = !soundOn;
+  document.getElementById('muteBtn').textContent = soundOn ? '🔊' : '🔇';
+  if (soundOn) {
+    getAudio();
+    startBgm();
+  } else {
+    stopBgm();
+  }
+});
+
 document.getElementById('testBtn').addEventListener('click', (e) => {
   e.stopPropagation();
   const nT = TIERS.length;
@@ -451,14 +513,17 @@ function drawFace(r, face) {
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
 
-  // 만화틱한 큰 눈 (검정 + 흰 하이라이트 2개)
+  // 검정 점 눈 (흰자 없음, 참고 사진 스타일)
   const bigEye = (x, y, mod = 1) => {
     const eR = eyeR * mod;
+    // 살짝 세로로 갸름한 타원
     ctx.fillStyle = '#1a1a1a';
-    ctx.beginPath(); ctx.arc(x, y, eR, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(x, y, eR * 0.88, eR * 1.02, 0, 0, Math.PI * 2); ctx.fill();
+    // 작은 sparkle 하나만
     ctx.fillStyle = '#fff';
-    ctx.beginPath(); ctx.arc(x - eR * 0.3, y - eR * 0.32, eR * 0.42, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(x + eR * 0.3, y + eR * 0.3, eR * 0.16, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(x - eR * 0.25, y - eR * 0.3, eR * 0.22, eR * 0.28, -0.3, 0, Math.PI * 2);
+    ctx.fill();
   };
   // 윙크 / 감은눈 (⌒ 스마일 커브, 위로 솟음)
   const winkEye = (x, y) => {
@@ -586,43 +651,62 @@ function drawFruit(f, alpha) {
   ctx.rotate(f.angle);
   if (alpha != null) ctx.globalAlpha = alpha;
 
-  // 본체
+  // === 본체 베이스 컬러 ===
   if (t.color2) {
-    // 다색 (위→아래 선형 그라데이션)
+    // 다색 (위→아래 선형)
     const lin = ctx.createLinearGradient(0, -r, 0, r);
-    lin.addColorStop(0, shade(t.color, 0.15));
+    lin.addColorStop(0, shade(t.color, 0.25));
     lin.addColorStop(0.5, t.color);
     lin.addColorStop(1, t.color2);
     ctx.fillStyle = lin;
-    ctx.beginPath();
-    ctx.arc(0, 0, r, 0, Math.PI * 2);
-    ctx.fill();
-    // 외곽 약간 어둡게 (입체감)
-    const rim = ctx.createRadialGradient(0, 0, r * 0.65, 0, 0, r);
-    rim.addColorStop(0, 'rgba(0,0,0,0)');
-    rim.addColorStop(1, 'rgba(0,0,0,0.22)');
-    ctx.fillStyle = rim;
     ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
   } else {
-    const grad = ctx.createRadialGradient(-r * 0.35, -r * 0.4, r * 0.1, 0, 0, r);
-    grad.addColorStop(0, shade(t.color, 0.45));
-    grad.addColorStop(0.55, t.color);
-    grad.addColorStop(1, shade(t.color, -0.25));
+    // 단일색 방사 (더 강한 대비)
+    const grad = ctx.createRadialGradient(-r * 0.32, -r * 0.36, r * 0.05, 0, 0, r);
+    grad.addColorStop(0, shade(t.color, 0.55));
+    grad.addColorStop(0.5, t.color);
+    grad.addColorStop(1, shade(t.color, -0.32));
     ctx.fillStyle = grad;
-    ctx.beginPath();
-    ctx.arc(0, 0, r, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
   }
+
+  // === 강한 림 그림자 (가장자리 어둡게 → 3D 입체감) ===
+  const rim = ctx.createRadialGradient(0, 0, r * 0.72, 0, 0, r);
+  rim.addColorStop(0, 'rgba(0,0,0,0)');
+  rim.addColorStop(0.8, 'rgba(0,0,0,0.06)');
+  rim.addColorStop(1, 'rgba(0,0,0,0.38)');
+  ctx.fillStyle = rim;
+  ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
+
+  // === 하단 반사광 (바닥에서 튕기는 빛) ===
+  const bot = ctx.createRadialGradient(r * 0.22, r * 0.52, 0, r * 0.22, r * 0.52, r * 0.55);
+  bot.addColorStop(0, 'rgba(255,255,255,0.28)');
+  bot.addColorStop(0.6, 'rgba(255,255,255,0.08)');
+  bot.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = bot;
+  ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
 
   // 과일 이름 (상단 장식 분기에서 사용)
   const n = t.name;
 
-  // 하이라이트
-  const hi = ctx.createRadialGradient(-r * 0.35, -r * 0.45, 0, -r * 0.35, -r * 0.45, r * 0.55);
-  hi.addColorStop(0, 'rgba(255,255,255,0.55)');
+  // === 메인 하이라이트 (좌상단 큰 광택) ===
+  const hi = ctx.createRadialGradient(-r * 0.3, -r * 0.4, 0, -r * 0.3, -r * 0.4, r * 0.72);
+  hi.addColorStop(0, 'rgba(255,255,255,0.85)');
+  hi.addColorStop(0.35, 'rgba(255,255,255,0.35)');
   hi.addColorStop(1, 'rgba(255,255,255,0)');
   ctx.fillStyle = hi;
   ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
+
+  // === 작은 글린트 (강한 흰점 — 비닐감) ===
+  ctx.fillStyle = 'rgba(255,255,255,0.95)';
+  ctx.beginPath();
+  ctx.ellipse(-r * 0.35, -r * 0.42, r * 0.2, r * 0.11, -0.35, 0, Math.PI * 2);
+  ctx.fill();
+  // 보조 작은 글린트
+  ctx.fillStyle = 'rgba(255,255,255,0.7)';
+  ctx.beginPath();
+  ctx.ellipse(-r * 0.1, -r * 0.55, r * 0.08, r * 0.04, 0.2, 0, Math.PI * 2);
+  ctx.fill();
 
   // 얼굴 (과일별 다른 표정)
   drawFace(r, t.face || 'smile');
@@ -813,22 +897,448 @@ function drawFruit(f, alpha) {
   ctx.restore();
 }
 
+// ============ 배경 장식 ============
+function drawBackground() {
+  // 좌우 나무 트렁크 (세로 띠)
+  const trunkW = 22;
+  const lg = ctx.createLinearGradient(0, 0, trunkW, 0);
+  lg.addColorStop(0, '#2d1a08');
+  lg.addColorStop(0.5, '#5a3818');
+  lg.addColorStop(1, '#3d2510');
+  ctx.fillStyle = lg;
+  ctx.fillRect(0, 0, trunkW, H);
+  const rg = ctx.createLinearGradient(W - trunkW, 0, W, 0);
+  rg.addColorStop(0, '#3d2510');
+  rg.addColorStop(0.5, '#5a3818');
+  rg.addColorStop(1, '#2d1a08');
+  ctx.fillStyle = rg;
+  ctx.fillRect(W - trunkW, 0, trunkW, H);
+  // 트렁크 세로 결 (텍스처)
+  ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+  ctx.lineWidth = 1;
+  for (let y = 0; y < H; y += 14) {
+    ctx.beginPath();
+    ctx.moveTo(5, y); ctx.lineTo(7, y + 10); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(14, y + 7); ctx.lineTo(16, y + 17); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(W - 17, y); ctx.lineTo(W - 15, y + 10); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(W - 8, y + 7); ctx.lineTo(W - 6, y + 17); ctx.stroke();
+  }
+  // 상단 좌우 잎사귀 군집
+  drawLeafCluster(18, 35, 55, -0.35, 0);
+  drawLeafCluster(W - 18, 38, 52, Math.PI + 0.3, 1);
+  drawLeafCluster(W * 0.25, 8, 38, -0.5, 2);
+  drawLeafCluster(W * 0.78, 12, 42, 0.6, 0);
+  // 좌우 덩굴 (상단에서 내려오는 가는 선)
+  ctx.strokeStyle = 'rgba(70,130,45,0.7)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(28, 0);
+  ctx.quadraticCurveTo(45, 40, 32, 90);
+  ctx.quadraticCurveTo(22, 130, 38, 170);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(W - 28, 0);
+  ctx.quadraticCurveTo(W - 48, 50, W - 32, 100);
+  ctx.quadraticCurveTo(W - 20, 150, W - 38, 190);
+  ctx.stroke();
+  // 덩굴 끝 작은 잎
+  drawSmallLeaf(38, 170, -0.3);
+  drawSmallLeaf(W - 38, 190, 0.3 + Math.PI);
+}
+
+function drawLeafCluster(cx, cy, size, tilt, seed) {
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(tilt);
+  const palette = ['#1e4a10', '#2d6a20', '#4a9030', '#3d7a28'];
+  const leaves = [
+    { x: -size * 0.45, y: 0, w: size * 0.9, h: size * 0.45, a: -0.3, c: 0 },
+    { x: size * 0.1, y: -size * 0.2, w: size * 0.85, h: size * 0.4, a: -0.1, c: 1 },
+    { x: size * 0.35, y: size * 0.1, w: size * 0.75, h: size * 0.38, a: 0.35, c: 2 },
+    { x: 0, y: size * 0.25, w: size * 1.0, h: size * 0.5, a: 0.1, c: 3 },
+    { x: -size * 0.2, y: size * 0.35, w: size * 0.7, h: size * 0.35, a: 0.55, c: 1 },
+  ];
+  for (const L of leaves) {
+    ctx.save();
+    ctx.translate(L.x, L.y);
+    ctx.rotate(L.a);
+    const lg2 = ctx.createLinearGradient(-L.w, 0, L.w, 0);
+    const base = palette[(L.c + seed) % palette.length];
+    lg2.addColorStop(0, shade(base, -0.2));
+    lg2.addColorStop(0.5, base);
+    lg2.addColorStop(1, shade(base, 0.25));
+    ctx.fillStyle = lg2;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, L.w, L.h, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // 잎맥
+    ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(-L.w * 0.9, 0); ctx.lineTo(L.w * 0.9, 0);
+    ctx.stroke();
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+function drawSmallLeaf(x, y, tilt) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(tilt);
+  const lg = ctx.createLinearGradient(-12, 0, 12, 0);
+  lg.addColorStop(0, '#2d6a20');
+  lg.addColorStop(1, '#58b23a');
+  ctx.fillStyle = lg;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 12, 5, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+  ctx.lineWidth = 0.8;
+  ctx.beginPath();
+  ctx.moveTo(-10, 0); ctx.lineTo(10, 0);
+  ctx.stroke();
+  ctx.restore();
+}
+
+// ============ 파티클 ============
+const particles = [];
+function spawnBurst(x, y, color, count) {
+  count = count || 14;
+  for (let i = 0; i < count; i++) {
+    const a = (i / count) * Math.PI * 2 + Math.random() * 0.5;
+    const sp = 120 + Math.random() * 200;
+    particles.push({
+      x, y,
+      vx: Math.cos(a) * sp,
+      vy: Math.sin(a) * sp - 40,
+      life: 1,
+      color,
+      size: 3 + Math.random() * 3,
+    });
+  }
+}
+function updateParticles(dt) {
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.life -= dt / 0.7;
+    p.vy += 700 * dt;
+    p.vx *= 0.98;
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    if (p.life <= 0) particles.splice(i, 1);
+  }
+}
+function drawParticles() {
+  for (const p of particles) {
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, p.life) * 0.9;
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size * Math.max(0.3, p.life), 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+// ============ 오디오 (SFX) ============
+let audioCtx = null;
+let soundOn = true;
+function getAudio() {
+  if (!audioCtx) {
+    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {}
+  }
+  if (audioCtx && audioCtx.state === 'suspended') {
+    audioCtx.resume().catch(() => {});
+  }
+  return audioCtx;
+}
+function playMergeSfx(tier) {
+  if (!soundOn) return;
+  const ac = getAudio();
+  if (!ac) return;
+  try {
+    const now = ac.currentTime;
+    const osc = ac.createOscillator();
+    const gain = ac.createGain();
+    osc.type = 'sine';
+    const baseFreq = 260 * Math.pow(1.1, tier);
+    osc.frequency.setValueAtTime(baseFreq, now);
+    osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.6, now + 0.06);
+    osc.frequency.exponentialRampToValueAtTime(baseFreq * 0.9, now + 0.22);
+    gain.gain.setValueAtTime(0.25, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.24);
+    osc.connect(gain).connect(ac.destination);
+    osc.start(now);
+    osc.stop(now + 0.26);
+  } catch (e) {}
+}
+function playGameOverSfx() {
+  if (!soundOn) return;
+  const ac = getAudio();
+  if (!ac) return;
+  try {
+    const now = ac.currentTime;
+    const notes = [440, 330, 220];
+    notes.forEach((f, i) => {
+      const osc = ac.createOscillator();
+      const g = ac.createGain();
+      osc.type = 'triangle';
+      osc.frequency.value = f;
+      g.gain.setValueAtTime(0, now + i * 0.18);
+      g.gain.linearRampToValueAtTime(0.2, now + i * 0.18 + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.001, now + i * 0.18 + 0.3);
+      osc.connect(g).connect(ac.destination);
+      osc.start(now + i * 0.18);
+      osc.stop(now + i * 0.18 + 0.32);
+    });
+  } catch (e) {}
+}
+
+// ============ BGM (Web Audio 합성 — 파일 불필요) ============
+const bgm = { playing: false, nextTime: 0, step: 0, masterGain: null, pad: null, padGain: null };
+// C장조 계열의 밝은 아르페지오 16비트 루프
+const BGM_MELODY = [
+  // C major arpeggio
+  261.63, 329.63, 392.00, 523.25,
+  329.63, 523.25, 392.00, 329.63,
+  // A minor (relative)
+  220.00, 261.63, 329.63, 523.25,
+  329.63, 261.63, 220.00, 329.63,
+  // F major
+  174.61, 261.63, 349.23, 523.25,
+  261.63, 349.23, 523.25, 349.23,
+  // G major (resolve)
+  196.00, 246.94, 293.66, 392.00,
+  246.94, 293.66, 392.00, 293.66,
+];
+const BGM_BASS = [
+  65.41,  65.41,  65.41,  65.41, // C2
+  65.41,  65.41,  65.41,  65.41,
+  55.00,  55.00,  55.00,  55.00, // A1
+  55.00,  55.00,  55.00,  55.00,
+  43.65,  43.65,  43.65,  43.65, // F1
+  43.65,  43.65,  43.65,  43.65,
+  49.00,  49.00,  49.00,  49.00, // G1
+  49.00,  49.00,  49.00,  49.00,
+];
+const BGM_STEP_DUR = 0.28; // 각 노트 길이 (초)
+
+function startBgm() {
+  if (bgm.playing) return;
+  const ac = getAudio();
+  if (!ac) return;
+  bgm.playing = true;
+  // 마스터 게인 (음량 조절용)
+  bgm.masterGain = ac.createGain();
+  bgm.masterGain.gain.value = 0.35;
+  bgm.masterGain.connect(ac.destination);
+  // 지속 저음 패드 (낮은 드론)
+  bgm.pad = ac.createOscillator();
+  bgm.pad.type = 'sine';
+  bgm.pad.frequency.value = 65.41; // C2
+  bgm.padGain = ac.createGain();
+  bgm.padGain.gain.value = 0.06;
+  bgm.pad.connect(bgm.padGain).connect(bgm.masterGain);
+  bgm.pad.start();
+  bgm.step = 0;
+  bgm.nextTime = ac.currentTime + 0.1;
+  bgmScheduler();
+}
+
+function stopBgm() {
+  if (!bgm.playing) return;
+  bgm.playing = false;
+  try { bgm.pad.stop(); } catch (e) {}
+  try { bgm.masterGain.disconnect(); } catch (e) {}
+  bgm.pad = null;
+  bgm.padGain = null;
+  bgm.masterGain = null;
+}
+
+function bgmScheduler() {
+  if (!bgm.playing) return;
+  const ac = getAudio();
+  if (!ac) { bgm.playing = false; return; }
+  // 0.3초 앞까지 예약
+  const lookAhead = 0.3;
+  while (bgm.nextTime < ac.currentTime + lookAhead) {
+    const idx = bgm.step % BGM_MELODY.length;
+    scheduleBgmNote(BGM_MELODY[idx], bgm.nextTime, BGM_STEP_DUR * 0.85, 'triangle', 0.07);
+    // 매 4스텝마다 베이스 노트
+    if (bgm.step % 4 === 0) {
+      scheduleBgmNote(BGM_BASS[idx], bgm.nextTime, BGM_STEP_DUR * 3.5, 'sine', 0.05);
+    }
+    bgm.step++;
+    bgm.nextTime += BGM_STEP_DUR;
+  }
+  setTimeout(bgmScheduler, 80);
+}
+
+function scheduleBgmNote(freq, startTime, duration, type, vol) {
+  const ac = getAudio();
+  if (!ac || !bgm.masterGain) return;
+  const osc = ac.createOscillator();
+  const g = ac.createGain();
+  osc.type = type;
+  osc.frequency.value = freq;
+  // ADSR 스타일 엔벨로프
+  g.gain.setValueAtTime(0, startTime);
+  g.gain.linearRampToValueAtTime(vol, startTime + 0.015);
+  g.gain.linearRampToValueAtTime(vol * 0.7, startTime + duration * 0.3);
+  g.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+  osc.connect(g).connect(bgm.masterGain);
+  osc.start(startTime);
+  osc.stop(startTime + duration + 0.02);
+}
+
+// ============ 햅틱 ============
+function haptic(kind) {
+  try {
+    if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) {
+      const h = Telegram.WebApp.HapticFeedback;
+      if (kind === 'merge') h.impactOccurred('light');
+      else if (kind === 'big') h.impactOccurred('medium');
+      else if (kind === 'gameover') h.notificationOccurred('error');
+      return;
+    }
+  } catch (e) {}
+  try {
+    if (navigator.vibrate) {
+      if (kind === 'merge') navigator.vibrate(15);
+      else if (kind === 'big') navigator.vibrate([30, 20, 30]);
+      else if (kind === 'gameover') navigator.vibrate([60, 40, 60, 40, 100]);
+    }
+  } catch (e) {}
+}
+
+// 첫 터치에서 오디오 언락 + BGM 시작
+window.addEventListener('pointerdown', () => {
+  getAudio();
+  if (soundOn) startBgm();
+}, { once: true });
+
+// 흙 알갱이 고정 위치 (깜빡임 방지)
+const SOIL_SPECKS = [
+  [0.04, 0.22, 'dark', 1.6],  [0.08, 0.65, 'light', 1.3], [0.13, 0.40, 'mid', 1.4],
+  [0.18, 0.78, 'dark', 1.5],  [0.22, 0.30, 'light', 1.2], [0.27, 0.55, 'mid', 1.5],
+  [0.33, 0.20, 'dark', 1.4],  [0.37, 0.75, 'light', 1.6], [0.42, 0.45, 'mid', 1.3],
+  [0.48, 0.65, 'dark', 1.5],  [0.52, 0.28, 'mid', 1.4],   [0.57, 0.80, 'light', 1.2],
+  [0.63, 0.40, 'dark', 1.6],  [0.68, 0.60, 'mid', 1.3],   [0.73, 0.25, 'light', 1.5],
+  [0.78, 0.75, 'dark', 1.4],  [0.82, 0.35, 'mid', 1.6],   [0.87, 0.55, 'light', 1.3],
+  [0.92, 0.22, 'dark', 1.5],  [0.96, 0.68, 'mid', 1.4],
+];
+// 젖은 물 얼룩 반짝이 위치 (고정)
+const WET_SPOTS = [[0.15, 0.45], [0.38, 0.55], [0.62, 0.35], [0.85, 0.6]];
+
+function drawGround() {
+  const fy = H - SAFE_BOTTOM;
+  // 불투명 젖은 흙 베이스 (진한 갈색 그라데이션)
+  const g = ctx.createLinearGradient(0, fy, 0, H);
+  g.addColorStop(0, '#5a3f26');
+  g.addColorStop(0.18, '#4a3018');
+  g.addColorStop(0.55, '#38220f');
+  g.addColorStop(1, '#1f1007');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, fy, W, SAFE_BOTTOM);
+
+  // 젖은 상단 윤기 (얇은 하이라이트 밴드)
+  const shine = ctx.createLinearGradient(0, fy, 0, fy + 8);
+  shine.addColorStop(0, 'rgba(180,140,90,0.45)');
+  shine.addColorStop(1, 'rgba(180,140,90,0)');
+  ctx.fillStyle = shine;
+  ctx.fillRect(0, fy, W, 8);
+
+  // 젖은 물 얼룩 (반사광 패치)
+  for (const [sx, sy] of WET_SPOTS) {
+    const px = sx * W, py = fy + sy * SAFE_BOTTOM;
+    const ws = ctx.createRadialGradient(px, py - 2, 0, px, py, 14);
+    ws.addColorStop(0, 'rgba(210,170,120,0.35)');
+    ws.addColorStop(0.5, 'rgba(180,140,90,0.15)');
+    ws.addColorStop(1, 'rgba(180,140,90,0)');
+    ctx.fillStyle = ws;
+    ctx.beginPath();
+    ctx.ellipse(px, py, 18, 7, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // 흙 알갱이 (어두운+밝은 점 혼합)
+  for (const [sx, sy, type, size] of SOIL_SPECKS) {
+    const px = sx * W, py = fy + sy * SAFE_BOTTOM;
+    if (type === 'light') ctx.fillStyle = 'rgba(140,100,60,0.7)';
+    else if (type === 'dark') ctx.fillStyle = 'rgba(10,5,2,0.7)';
+    else ctx.fillStyle = 'rgba(70,45,25,0.75)';
+    ctx.beginPath();
+    ctx.arc(px, py, size, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // 지면 상단 경계 (뚜렷한 흙 라인)
+  ctx.strokeStyle = 'rgba(100,70,40,0.9)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(0, fy); ctx.lineTo(W, fy);
+  ctx.stroke();
+}
+
 function drawLine() {
   const danger = Math.max(0, Math.min(1, window.__lineDanger || 0));
   ctx.save();
-  if (danger > 0) {
-    // 위험도 글로우 (투명도/굵기 증가)
-    ctx.strokeStyle = `rgba(255, 60, 60, ${0.25 + danger * 0.5})`;
-    ctx.lineWidth = 3 + danger * 10;
-    ctx.beginPath();
-    ctx.moveTo(0, LINE_Y); ctx.lineTo(W, LINE_Y);
-    ctx.stroke();
+
+  // 위험 시 위아래로 번지는 빨간 글로우 밴드 (부드럽게)
+  if (danger > 0.05) {
+    const glow = ctx.createLinearGradient(0, LINE_Y - 24, 0, LINE_Y + 24);
+    glow.addColorStop(0, 'rgba(255, 60, 60, 0)');
+    glow.addColorStop(0.5, `rgba(255, 60, 60, ${0.5 * danger})`);
+    glow.addColorStop(1, 'rgba(255, 60, 60, 0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, LINE_Y - 24, W, 48);
   }
-  ctx.strokeStyle = '#ff4a4a';
-  ctx.lineWidth = 2;
+
+  // 메인 점선 (기본 흰색 반투명, 위험 시 빨강)
+  const isRed = danger > 0.3;
+  const mainColor = isRed
+    ? `rgba(255, 95, 95, ${0.85 + danger * 0.15})`
+    : 'rgba(255, 255, 255, 0.72)';
+  ctx.strokeStyle = mainColor;
+  ctx.lineWidth = 2.4;
+  ctx.lineCap = 'round';
+  ctx.setLineDash([12, 7]);
   ctx.beginPath();
-  ctx.moveTo(0, LINE_Y); ctx.lineTo(W, LINE_Y);
+  ctx.moveTo(10, LINE_Y);
+  ctx.lineTo(W - 10, LINE_Y);
   ctx.stroke();
+  ctx.setLineDash([]);
+
+  // 양 끝 나무매듭 앵커
+  const knotColor = isRed ? '#c62828' : '#5a3818';
+  const knotHi    = isRed ? '#ef5350' : '#8a6838';
+  [8, W - 8].forEach((ax) => {
+    ctx.fillStyle = knotColor;
+    ctx.beginPath();
+    ctx.arc(ax, LINE_Y, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.fillStyle = knotHi;
+    ctx.beginPath();
+    ctx.arc(ax - 1.2, LINE_Y - 1.2, 1.6, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  // 위험도 높을 때 중앙에 작은 경고 아이콘 (⚠ 느낌의 점)
+  if (danger > 0.5) {
+    ctx.fillStyle = `rgba(255, 230, 60, ${danger})`;
+    const cx = W / 2;
+    ctx.beginPath();
+    ctx.arc(cx, LINE_Y, 3, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
   ctx.restore();
 }
 
@@ -872,9 +1382,14 @@ function loop(now) {
   }
   updatePops(dt);
 
+  updateParticles(dt);
+
   ctx.clearRect(0, 0, W, H);
+  drawBackground();
+  drawGround();
   drawLine();
   for (const f of fruits) drawFruit(f);
+  drawParticles();
   drawPops();
   drawPreview();
 
