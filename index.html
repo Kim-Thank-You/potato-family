@@ -2,24 +2,25 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
 <title>수박 합성</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
   html, body {
-    margin: 0; padding: 0; width: 100%; height: 100%;
+    margin: 0; padding: 0; width: 100vw; height: 100vh; height: 100dvh;
     overflow: hidden; background: #000;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Malgun Gothic", sans-serif;
     color: #fff; touch-action: none;
-    display: flex; align-items: center; justify-content: center;
   }
   #wrap {
     position: relative;
-    width: min(100vw, calc(100vh * 9 / 16));
-    height: min(100vh, calc(100vw * 16 / 9));
-    width: min(100vw, calc(100dvh * 9 / 16));
-    height: min(100dvh, calc(100vw * 16 / 9));
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
     background: linear-gradient(180deg, #2a5f6b 0%, #4a8a76 55%, #6fb27a 100%);
     overflow: hidden; cursor: pointer;
   }
@@ -137,11 +138,11 @@ try { document.getElementById('debug').textContent = 'init…'; } catch(e) {}
 
 // ============ 과일 정의 ============
 const TIERS = [
-  { name: '체리',     color: '#D32F2F', r: 14,  face: 'smile'  },                          // 진한 빨강
-  { name: '딸기',     color: '#FF3D00', r: 20,  face: 'grin'   },                          // 밝은 붉은-주황 (체리/포도와 명확히 구분)
-  { name: '포도',     color: '#7B1FA2', r: 28,  face: 'wink-r' },                          // 보라
-  { name: '귤',       color: '#FB8C00', r: 37,  face: 'blush'  },                          // 주황
-  { name: '감',       color: '#FDD835', r: 47,  face: 'happy'  },                          // 노랑
+  { name: '체리',     color: '#D32F2F', r: 14,  face: 'smile'  },                          // 1단계: 빨강
+  { name: '딸기',     color: '#FFEB3B', r: 20,  face: 'grin'   },                          // 2단계: 노랑 (빨강·보라와 완전 다른 계열)
+  { name: '포도',     color: '#7B1FA2', r: 28,  face: 'wink-r' },                          // 3단계: 보라
+  { name: '귤',       color: '#FB8C00', r: 37,  face: 'blush'  },                          // 4단계: 주황
+  { name: '감',       color: '#C2185B', r: 47,  face: 'happy'  },                          // 5단계: 딥 라즈베리
   { name: '사과',     color: '#43A047', r: 58,  face: 'cat'    },                          // 초록 (청사과)
   { name: '배',       color: '#DCE775', color2: '#F9A825', r: 70,  face: 'tongue' },       // 연두→골드 (배 느낌)
   { name: '복숭아',   color: '#FF7043', color2: '#FDD835', r: 82,  face: 'blush'  },       // 산호→노랑 (석양)
