@@ -7,15 +7,19 @@
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
 <title>수박 합성</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Do+Hyeon&display=swap" rel="stylesheet">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
   html, body {
     margin: 0; padding: 0; width: 100vw; height: 100vh; height: 100dvh;
     overflow: hidden; background: #000;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Malgun Gothic", sans-serif;
+    font-family: 'Jua', 'Malgun Gothic', -apple-system, BlinkMacSystemFont, sans-serif;
     color: #fff; touch-action: none;
   }
+  .title-font { font-family: 'Do Hyeon', 'Jua', sans-serif; }
   #wrap {
     position: relative;
     width: 100vw;
@@ -41,16 +45,28 @@
   }
   canvas { display: block; position: absolute; inset: 0; pointer-events: none; }
   .hud {
-    position: absolute; top: 0; left: 0; right: 0;
-    padding: 10px 14px;
-    display: flex; justify-content: space-between; align-items: flex-start;
-    pointer-events: none; z-index: 5;
+    position: absolute; top: 10px; left: 14px;
+    pointer-events: none; z-index: 6;
   }
-  .score-box { font-weight: 800; }
-  .score-row { display: flex; align-items: center; gap: 10px; margin-bottom: 2px; }
-  .score-label { font-size: 12px; opacity: .85; min-width: 40px; }
-  .score-value { font-size: 14px; color: #ffde59; }
-  .big { font-size: 26px !important; color: #ffb800 !important; text-shadow: 0 2px 0 rgba(0,0,0,.35); }
+  .score-box {
+    font-weight: 800;
+    background: rgba(0,0,0,0.42);
+    padding: 6px 14px 8px;
+    border-radius: 14px;
+    backdrop-filter: blur(2px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+    display: inline-block;
+  }
+  .score-row { display: flex; align-items: baseline; gap: 8px; margin-bottom: 1px; }
+  .score-label { font-size: 12px; opacity: .9; min-width: 42px; color: #fff; }
+  .score-value { font-size: 15px; color: #ffde59; font-weight: 700; }
+  .big {
+    font-size: 28px !important;
+    color: #ffb800 !important;
+    text-shadow: 0 2px 0 rgba(0,0,0,.5), 0 0 8px rgba(255,184,0,0.4);
+    font-family: 'Do Hyeon', 'Jua', sans-serif;
+    letter-spacing: 0.5px;
+  }
   .next-box {
     background: rgba(0,0,0,0.25);
     border: 2px solid rgba(255,255,255,0.3);
@@ -65,14 +81,24 @@
   }
   .overlay {
     position: absolute; inset: 0; z-index: 10;
-    background: rgba(0,0,0,0.65);
+    background: rgba(0,0,0,0.7);
     display: none; flex-direction: column; align-items: center; justify-content: center;
-    gap: 20px; backdrop-filter: blur(6px);
+    gap: 14px; backdrop-filter: blur(6px);
   }
   .overlay.show { display: flex; }
-  .overlay h2 { margin: 0; font-size: 32px; color: #ffde59; text-shadow: 0 3px 0 #8a5a00; }
-  .overlay .final-score { font-size: 22px; }
-  .overlay .final-score b { color: #ffb800; font-size: 28px; }
+  .overlay h2 { margin: 0; font-family: 'Do Hyeon', sans-serif; font-size: 38px; color: #ffde59; text-shadow: 0 3px 0 #8a5a00; letter-spacing: 2px; }
+  .overlay .final-score { font-size: 20px; }
+  .overlay .final-score b { color: #ffb800; font-size: 36px; text-shadow: 0 2px 0 #5a3a00; }
+  .stats-box {
+    background: rgba(255,255,255,0.08);
+    border: 2px solid rgba(255,255,255,0.25);
+    border-radius: 14px;
+    padding: 14px 22px;
+    min-width: 220px;
+  }
+  .stats-row { display: flex; justify-content: space-between; margin: 5px 0; font-size: 15px; }
+  .stats-row .k { opacity: 0.85; }
+  .stats-row .v { color: #ffd54f; font-weight: 700; }
   .btn {
     background: linear-gradient(180deg, #ffcf4a 0%, #ff9e2c 100%);
     border: 3px solid #7a4a00; color: #4a2800;
@@ -81,26 +107,173 @@
     cursor: pointer; box-shadow: 0 4px 0 #7a4a00;
   }
   .btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #7a4a00; }
-  #debug {
-    position: absolute; bottom: 8px; left: 8px; font-size: 10px;
-    background: rgba(0,0,0,0.55); color: #9ff; padding: 3px 6px; border-radius: 6px;
-    z-index: 99; pointer-events: none; font-family: monospace;
+  #itemBar {
+    position: absolute; right: 10px; bottom: 12px;
+    z-index: 8; pointer-events: none;
   }
-  #testBtn {
-    position: absolute; top: 10px; right: 12px; z-index: 20;
-    background: rgba(0,0,0,0.55); color: #fff; border: 1px solid #fff6;
-    padding: 5px 10px; border-radius: 14px; font-size: 11px; font-weight: 700;
+  .item-slot {
+    pointer-events: auto;
+    background: linear-gradient(180deg, #fff6d5 0%, #ffcf5a 100%);
+    border: 2.5px solid #7a4a00;
+    border-radius: 12px;
+    padding: 5px 10px;
+    color: #3a2000;
+    font-family: 'Jua', sans-serif;
     cursor: pointer;
+    display: flex; flex-direction: row; align-items: center; gap: 8px;
+    box-shadow: 0 3px 0 #7a4a00, 0 5px 12px rgba(0,0,0,0.5);
+    transition: transform 0.1s, box-shadow 0.1s;
+    line-height: 1;
   }
-  #testBtn:active { background: rgba(0,0,0,0.8); }
-  #muteBtn {
-    position: absolute; top: 80px; right: 12px; z-index: 20;
-    width: 34px; height: 34px; border-radius: 50%;
-    background: rgba(0,0,0,0.55); color: #fff; border: 1px solid #fff6;
-    font-size: 16px; cursor: pointer; padding: 0;
+  .item-slot:active { transform: translateY(2px); box-shadow: 0 1px 0 #7a4a00, 0 3px 6px rgba(0,0,0,0.5); }
+  .item-slot .icon { font-size: 22px; line-height: 1; }
+  .item-slot .desc { font-size: 13px; font-weight: 700; color: #3a2000; line-height: 1; }
+  .item-slot .price-tag {
+    background: #3a2000; color: #ffde59;
+    padding: 4px 8px; border-radius: 10px;
+    font-size: 12px; font-weight: 700;
+    line-height: 1;
+  }
+  .item-slot.ready {
+    border-color: #43a047;
+    background: linear-gradient(180deg, #e8f9d5 0%, #a5dc7a 100%);
+    box-shadow: 0 0 14px rgba(100,220,100,0.7), 0 3px 0 #2a6a1a;
+  }
+  .item-slot.ready .desc { color: #1a4a10; font-weight: 700; }
+  .item-slot.active {
+    border-color: #ff3d00;
+    background: linear-gradient(180deg, #fff0b8 0%, #ff9e40 100%);
+    box-shadow: 0 0 18px rgba(255,130,0,0.9), 0 3px 0 #a04a00;
+    animation: slotPulse 0.6s infinite;
+  }
+  @keyframes slotPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.04); }
+  }
+  .item-slot.used {
+    opacity: 0.45; cursor: not-allowed; pointer-events: none;
+    filter: grayscale(0.6);
+  }
+  .revive-btn {
+    background: linear-gradient(180deg, #4a90e2 0%, #2a6fbf 100%);
+    border: 3px solid #1a4a80; color: #fff;
+    padding: 12px 24px; border-radius: 24px;
+    font-family: 'Jua', sans-serif; font-size: 16px; font-weight: 700;
+    cursor: pointer; box-shadow: 0 4px 0 #1a4a80;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .revive-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #1a4a80; }
+  .revive-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .toast {
+    position: absolute; bottom: 90px; left: 50%; transform: translateX(-50%);
+    background: rgba(0,0,0,0.85); color: #fff;
+    padding: 10px 18px; border-radius: 18px;
+    font-family: 'Jua', sans-serif; font-size: 14px;
+    z-index: 40; pointer-events: none;
+    opacity: 0; transition: opacity 0.2s;
+  }
+  .toast.show { opacity: 1; }
+  #muteBtn, #dexBtn {
+    position: absolute; left: 14px; z-index: 20;
+    width: 36px; height: 36px; border-radius: 50%;
+    background: rgba(0,0,0,0.55); color: #fff; border: 1.5px solid rgba(255,255,255,0.4);
+    font-size: 17px; cursor: pointer; padding: 0;
     display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
   }
-  #muteBtn:active { background: rgba(0,0,0,0.8); }
+  #muteBtn { top: 82px; }
+  #dexBtn  { top: 82px; left: 58px; }
+  #muteBtn:active, #dexBtn:active { background: rgba(0,0,0,0.8); transform: translateY(1px); }
+  .dex-overlay {
+    position: absolute; inset: 0; z-index: 30;
+    background: rgba(0,0,0,0.75);
+    display: none; flex-direction: column; align-items: center; justify-content: center;
+    backdrop-filter: blur(6px); padding: 16px;
+  }
+  .dex-overlay.show { display: flex; }
+  .dex-card {
+    background: linear-gradient(180deg, #fff5d5 0%, #ffdc7a 100%);
+    border: 4px solid #8a5a00;
+    border-radius: 18px;
+    padding: 18px 22px;
+    max-width: 92%;
+    max-height: 92%;
+    overflow-y: auto;
+    color: #3a2000;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+  }
+  .dex-card h2 {
+    margin: 0 0 12px; font-family: 'Do Hyeon', sans-serif;
+    font-size: 26px; text-align: center; color: #8a3a00;
+  }
+  .dex-progress {
+    font-size: 14px; text-align: center; margin-bottom: 14px; font-weight: 700;
+  }
+  .dex-progress .bar {
+    height: 8px; background: rgba(0,0,0,0.12); border-radius: 4px; margin-top: 6px; overflow: hidden;
+  }
+  .dex-progress .fill {
+    height: 100%; background: linear-gradient(90deg, #43a047, #8bc34a); border-radius: 4px;
+    transition: width 0.3s;
+  }
+  .dex-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px;
+  }
+  .dex-cell {
+    aspect-ratio: 1 / 1;
+    border-radius: 12px;
+    display: flex; align-items: flex-end; justify-content: center;
+    padding-bottom: 4px;
+    font-family: 'Jua', sans-serif;
+    font-weight: 700; font-size: 12px; color: #3a2000;
+    border: 2px solid #a87a20;
+    box-shadow: inset -2px -3px 6px rgba(0,0,0,0.12);
+    position: relative;
+    background: #f5eac8;
+    overflow: hidden;
+  }
+  .dex-cell .dex-sprite {
+    position: absolute;
+    left: 7.5%; top: 7.5%;
+    width: 85%; height: 85%;
+    object-fit: contain;
+    z-index: 1;
+    pointer-events: none;
+  }
+  .dex-cell.locked {
+    background: #4a4a4a !important;
+    border-color: #2a2a2a;
+  }
+  .dex-cell.locked .dex-sprite {
+    /* 실루엣: 검정 그림자처럼 어둡게 */
+    filter: brightness(0) opacity(0.55);
+  }
+  .dex-cell.locked .tier-name {
+    color: rgba(255,255,255,0.65);
+    background: rgba(0,0,0,0.35);
+  }
+  .dex-cell .tier-num {
+    position: absolute; top: 3px; left: 5px;
+    font-size: 10px; opacity: 0.75; color: #6a4810;
+    background: rgba(255,255,255,0.5);
+    padding: 1px 4px; border-radius: 6px;
+    z-index: 2;
+  }
+  .dex-cell.locked .tier-num { color: rgba(255,255,255,0.7); background: rgba(0,0,0,0.4); }
+  .dex-cell .tier-name {
+    position: relative; z-index: 2;
+    background: rgba(255,255,255,0.75);
+    padding: 1px 6px; border-radius: 8px;
+    font-size: 11px;
+  }
+  .dex-close {
+    display: block; margin: 0 auto;
+    background: linear-gradient(180deg, #ffcf4a 0%, #ff9e2c 100%);
+    border: 3px solid #7a4a00; color: #4a2800;
+    padding: 8px 24px; border-radius: 20px;
+    font-family: 'Jua', sans-serif; font-size: 15px; font-weight: 700;
+    cursor: pointer; box-shadow: 0 3px 0 #7a4a00;
+  }
   .tutorial-overlay {
     position: absolute; inset: 0; z-index: 50;
     background: rgba(0,0,0,0.7);
@@ -155,13 +328,42 @@
 
   <div class="overlay" id="overlay">
     <h2>게임 오버</h2>
-    <div class="final-score">점수 <b id="finalScore">0</b></div>
+    <div class="final-score"><b id="finalScore">0</b></div>
+    <div class="stats-box">
+      <div class="stats-row"><span class="k">🔀 합체 횟수</span><span class="v" id="statMerges">0</span></div>
+      <div class="stats-row"><span class="k">🔥 최고 콤보</span><span class="v" id="statCombo">0</span></div>
+      <div class="stats-row"><span class="k">🏆 최고 과일</span><span class="v" id="statTier">-</span></div>
+      <div class="stats-row"><span class="k">⏱️ 플레이 시간</span><span class="v" id="statTime">0초</span></div>
+    </div>
+    <button class="revive-btn" id="reviveBtn">📺 광고 보고 이어하기</button>
     <button class="btn" id="restartBtn">다시 도전</button>
   </div>
 
-  <button id="testBtn">전체 과일 테스트</button>
+  <!-- 하단 우측 아이템 바 -->
+  <div id="itemBar">
+    <div class="item-slot" id="knifeSlot">
+      <span class="icon">🔪</span>
+      <span class="desc" id="knifeDesc">한 개 제거</span>
+      <span class="price-tag" id="knifePrice">💎 2</span>
+    </div>
+  </div>
+
+  <!-- 토스트 -->
+  <div class="toast" id="toast"></div>
+
   <button id="muteBtn" title="소리 켜기/끄기">🔊</button>
-  <div id="debug">loading…</div>
+  <button id="dexBtn" title="도감">📖</button>
+  <div class="dex-overlay" id="dexOverlay">
+    <div class="dex-card">
+      <h2>🌳 과일 도감 🌳</h2>
+      <div class="dex-progress">
+        달성 <span id="dexCount">0</span> / <span id="dexTotal">11</span>
+        <div class="bar"><div class="fill" id="dexFill" style="width:0%"></div></div>
+      </div>
+      <div class="dex-grid" id="dexGrid"></div>
+      <button class="dex-close" id="dexClose">닫기</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -187,6 +389,42 @@ try {
   }
 } catch (e) {}
 
+// ============================================================
+// 🔌 부모 앱 브릿지 — 실제 앱 SDK로 교체해야 할 부분
+// ============================================================
+// 개발자 주의: 아래 2개 함수 내부만 실제 앱의 다이아/광고 SDK로 교체하면 됨
+window.ParentBridge = window.ParentBridge || {
+  // 다이아로 아이템 구매
+  async buyItem(itemType, price) {
+    // TODO: 실제 앱에서 다이아 차감 API 호출
+    console.log(`[stub] buyItem(${itemType}, ${price})`);
+    await new Promise(r => setTimeout(r, 300));
+    return { success: true };
+  },
+  // 광고 시청 (이어하기용)
+  async watchAd(purpose) {
+    // TODO: 실제 광고 SDK 호출
+    console.log(`[stub] watchAd(${purpose})`);
+    await new Promise(r => setTimeout(r, 1500));
+    return { success: true };
+  },
+};
+
+// ============ 아이템 상수/상태 ============
+const KNIFE_PRICE = 2;       // 다이아 가격
+const KNIFE_MAX_TIER = 7;    // 인덱스 7 = 복숭아. 0~7까지 제거 가능, 8~10(파인애플/멜론/감자) 불가
+const inventory = { knife: 0 };
+let knifeAvailable = true;   // 이번 판에 아직 구매 가능?
+let knifeMode = false;       // 사용 모드 (과일 탭 대기)
+let reviveUsed = false;      // 이번 판에 이어하기 썼는지
+
+function resetItems() {
+  inventory.knife = 0;
+  knifeAvailable = true;
+  knifeMode = false;
+  reviveUsed = false;
+}
+
 // 스크립트 시작 확인용
 try { document.getElementById('debug').textContent = 'init…'; } catch(e) {}
 
@@ -207,9 +445,9 @@ const TIERS = [
 
 // ============ 캔버스 / 렌더링 셋업 ============
 const canvas = document.getElementById('game');
-const ctx = canvas.getContext('2d');
+let ctx = canvas.getContext('2d'); // 스프라이트 렌더링 시 임시 교체용 (let)
+const mainCtx = ctx; // 메인 캔버스 컨텍스트 보관
 const wrap = document.getElementById('wrap');
-const dbg = document.getElementById('debug');
 
 // 실제 화면 크기 그대로 사용 (초기 버전 방식)
 let W = 0, H = 0, LINE_Y = 0;
@@ -241,10 +479,10 @@ try {
 const GRAVITY = 1800;     // px/s²
 const RESTITUTION = 0;    // 반발력 (거의 제거)
 const WALL_REST = 0.02;
-const WALL_FRICTION = 0.5; // 벽/바닥 마찰
-const LINEAR_DAMP = 0.97;  // 선속도 감쇠 강화 (미끄러짐 감소)
-const ANG_DAMP = 0.86;     // 각속도 감쇠 강화
-const CONTACT_FRICTION = 0.45; // 과일끼리 접선 마찰
+const WALL_FRICTION = 0.32;    // 벽/바닥 마찰 (낮춤: 0.5 → 0.32)
+const LINEAR_DAMP = 0.988;     // 선속도 감쇠 (완화: 0.97 → 0.988)
+const ANG_DAMP = 0.93;         // 각속도 감쇠 (완화: 0.86 → 0.93)
+const CONTACT_FRICTION = 0.18; // 과일끼리 접선 마찰 (낮춤: 0.45 → 0.18)
 // 핸드폰 하단 곡률/홈 인디케이터 안전 영역 (논리 좌표)
 const SAFE_BOTTOM = 70;
 const SAFE_SIDE = 22; // 나무 트렁크 두께와 일치
@@ -273,7 +511,7 @@ function Fruit(x, y, tier) {
 const fruits = [];
 
 function physicsStep(dt) {
-  // 중력 + 적분
+  // 중력 + 적분 + 상태 업데이트
   for (const f of fruits) {
     if (f.dead) continue;
     f.vy += GRAVITY * dt;
@@ -284,6 +522,21 @@ function physicsStep(dt) {
     f.angle += f.va * dt;
     if (f.squashTime > 0) {
       f.squashTime = Math.max(0, f.squashTime - dt / 0.22);
+    }
+    // 표정 상태 업데이트
+    if (f.faceTimer > 0) {
+      f.faceTimer = Math.max(0, f.faceTimer - dt);
+      if (f.faceTimer === 0) f.faceState = 0;
+    }
+    // 낙하 중 놀람 (vy 빠름 + 땅/다른과일 안 닿음)
+    if (f.vy > 400 && f.faceState !== 2) {
+      f.faceState = 1; // 놀람
+      f.faceTimer = 0.2;
+    }
+    // 라인 위 → 땀 (가장 우선)
+    if (f.overLineAt > 0 && f.faceState !== 2) {
+      f.faceState = 3; // 땀
+      f.faceTimer = 0.5;
     }
   }
 
@@ -380,34 +633,42 @@ function physicsStep(dt) {
               const resultTier = tIdx + 1;
               const nf = Fruit(mx, my, resultTier);
               nf.vy = -30;
-              nf.squashTime = 0.22; // 합체 순간 압축/팽창
+              nf.squashTime = 0.22;
+              nf.faceState = 2;
+              nf.faceTimer = 0.35;
               fruits.push(nf);
-              // 콤보 적용
+              unlockTier(resultTier);
               registerCombo();
               const basePts = mergeScore(resultTier);
               const pts = Math.round(basePts * comboMultiplier());
               addScore(pts);
-              spawnPop(mx, my, TIERS[resultTier].color, TIERS[resultTier].r);
-              spawnBurst(mx, my, TIERS[resultTier].color, Math.min(22, 10 + tIdx * 2));
-              spawnStreaks(mx, my, TIERS[resultTier].color, 8 + tIdx);
-              spawnScorePopup(mx, my - TIERS[resultTier].r * 0.6, '+' + pts, comboCount > 1);
+              stats.mergeCount++;
+              stats.maxCombo = Math.max(stats.maxCombo, comboCount);
+              stats.maxTier = Math.max(stats.maxTier, resultTier);
               playMergeSfx(tIdx);
-              haptic(tIdx >= 6 ? 'big' : 'merge');
+              applyMergeFx(mx, my, resultTier, pts);
               checkRecord();
-              // 감자(최종) 달성 — 축하 연출
               if (resultTier === TIERS.length - 1) {
                 triggerAchievement('🥔 전설의 감자!');
+                triggerFlash(0.5);
+                triggerShake(12, 0.5);
+                triggerSlowMo(0.4, 0.3);
               }
             } else {
               registerCombo();
               const pts = Math.round(500 * comboMultiplier());
               addScore(pts);
+              stats.mergeCount++;
+              stats.maxCombo = Math.max(stats.maxCombo, comboCount);
               spawnPop(mx, my, TIERS[tIdx].color, TIERS[tIdx].r * 1.6);
               spawnBurst(mx, my, TIERS[tIdx].color, 60);
               spawnStreaks(mx, my, '#ffde59', 16);
               spawnScorePopup(mx, my - TIERS[tIdx].r * 0.5, '+' + pts + ' BONUS!', true);
               playMergeSfx(tIdx);
               haptic('big');
+              triggerShake(15, 0.5);
+              triggerSlowMo(0.35, 0.35);
+              triggerFlash(0.6);
               checkRecord();
               triggerAchievement('✨ 감자 콤보!');
             }
@@ -432,6 +693,28 @@ let previewX = 0;
 let currentTier = randomSpawnTier();
 let nextTier = randomSpawnTier();
 
+// 게임 통계
+const stats = { mergeCount: 0, maxCombo: 0, maxTier: 0, startTime: performance.now() };
+function resetStats() {
+  stats.mergeCount = 0;
+  stats.maxCombo = 0;
+  stats.maxTier = 0;
+  stats.startTime = performance.now();
+}
+
+// 도감 — 해제된 과일 티어
+let unlockedTiers = new Set([0]); // 체리는 기본
+try {
+  const saved = safeStorage.get('suika_unlocked');
+  if (saved) unlockedTiers = new Set(JSON.parse(saved));
+} catch (e) {}
+function unlockTier(t) {
+  if (!unlockedTiers.has(t)) {
+    unlockedTiers.add(t);
+    safeStorage.set('suika_unlocked', JSON.stringify([...unlockedTiers]));
+  }
+}
+
 function randomSpawnTier() {
   // 점수에 따른 동적 가중치 (5000점 만점 기준 선형 증가)
   // progress 0:  체리 60 / 딸기 32 / 포도 6  / 귤 2
@@ -451,16 +734,49 @@ function mergeScore(resultTier) {
   return Math.round(Math.pow(resultTier, 2.3) * 2);
 }
 
+// 합체 티어별 이펙트 — 작을수록 조용, 클수록 화려
+function applyMergeFx(mx, my, resultTier, pts) {
+  const color = TIERS[resultTier].color;
+  const r = TIERS[resultTier].r;
+  let fxLevel;
+  if (resultTier <= 3)      fxLevel = 0; // 1~3: 기본
+  else if (resultTier <= 6) fxLevel = 1; // 4~6: 중간
+  else if (resultTier <= 8) fxLevel = 2; // 7~8: 큼
+  else                      fxLevel = 3; // 9~10: 메가
+
+  // 기본 (항상)
+  spawnPop(mx, my, color, r);
+  spawnBurst(mx, my, color, 8 + fxLevel * 8);
+  spawnScorePopup(mx, my - r * 0.6, '+' + pts, comboCount > 1);
+
+  // 중간 이상: 빛줄기 추가
+  if (fxLevel >= 1) spawnStreaks(mx, my, color, 6 + fxLevel * 4);
+
+  // 큼 이상: 스크린 셰이크 + 햅틱 중
+  if (fxLevel >= 2) {
+    triggerShake(3 + fxLevel * 2, 0.15 + fxLevel * 0.05);
+    haptic('big');
+  } else {
+    haptic('merge');
+  }
+
+  // 메가: 슬로우모션 + 플래시
+  if (fxLevel >= 3) {
+    triggerSlowMo(0.55, 0.2);
+    triggerFlash(0.3);
+  }
+}
+
 function addScore(pts) {
   score += pts;
   // 표시 점수는 tickDisplayScore가 프레임마다 부드럽게 반영
   if (score > best) {
     best = score;
     safeStorage.set('suika_best', String(best));
-    document.getElementById('best').textContent = best;
+    document.getElementById('best').textContent = best.toLocaleString();
   }
 }
-document.getElementById('best').textContent = best;
+document.getElementById('best').textContent = best.toLocaleString();
 
 function dropFruit(x) {
   if (!canDrop || gameOver) return;
@@ -484,6 +800,15 @@ function getEventX(e) {
   else return null;
   return cx - rect.left;
 }
+function getEventY(e) {
+  const rect = wrap.getBoundingClientRect();
+  let cy;
+  if (e.clientY != null) cy = e.clientY;
+  else if (e.touches && e.touches[0]) cy = e.touches[0].clientY;
+  else if (e.changedTouches && e.changedTouches[0]) cy = e.changedTouches[0].clientY;
+  else return null;
+  return cy - rect.top;
+}
 
 function onMove(e) {
   const x = getEventX(e);
@@ -492,15 +817,38 @@ function onMove(e) {
 function onDown(e) {
   if (e.target && e.target.closest && (
     e.target.closest('.btn') ||
+    e.target.closest('.revive-btn') ||
     e.target.closest('.overlay.show') ||
     e.target.closest('.tutorial-overlay.show') ||
-    e.target.closest('#testBtn') ||
+    e.target.closest('.dex-overlay.show') ||
+    e.target.closest('.item-slot') ||
     e.target.closest('#muteBtn') ||
-    e.target.closest('#tutorialClose')
+    e.target.closest('#dexBtn') ||
+    e.target.closest('#tutorialClose') ||
+    e.target.closest('#dexClose')
   )) return;
-  // 튜토리얼 떠 있으면 드롭 금지
   if (document.getElementById('tutorial').classList.contains('show')) return;
+  if (document.getElementById('dexOverlay').classList.contains('show')) return;
+
   const x = getEventX(e);
+  const y = getEventY(e);
+
+  // 칼 모드 — 과일 제거 or 취소
+  if (knifeMode && inventory.knife > 0) {
+    if (x != null && y != null) {
+      const f = findFruitAt(x, y);
+      if (f) {
+        useKnifeOn(f);
+      } else {
+        // 빈 공간 탭 → 모드 취소
+        knifeMode = false;
+        updateKnifeSlot();
+      }
+    }
+    e.preventDefault && e.preventDefault();
+    return;
+  }
+
   if (x != null) { previewX = x; dropFruit(x); }
   e.preventDefault && e.preventDefault();
 }
@@ -570,11 +918,254 @@ function checkGameOver() {
 }
 function triggerGameOver() {
   gameOver = true;
-  document.getElementById('finalScore').textContent = score;
+  knifeMode = false;
+  document.getElementById('finalScore').textContent = score.toLocaleString();
+  document.getElementById('statMerges').textContent = stats.mergeCount;
+  document.getElementById('statCombo').textContent = stats.maxCombo + '연속';
+  document.getElementById('statTier').textContent = stats.maxTier > 0 ? TIERS[stats.maxTier].name : '-';
+  const elapsed = Math.floor((performance.now() - stats.startTime) / 1000);
+  const mm = Math.floor(elapsed / 60);
+  const ss = elapsed % 60;
+  document.getElementById('statTime').textContent = (mm > 0 ? mm + '분 ' : '') + ss + '초';
+  // 이어하기 이미 쓴 판이면 버튼 숨김
+  const rBtn = document.getElementById('reviveBtn');
+  if (reviveUsed) {
+    rBtn.style.display = 'none';
+  } else {
+    rBtn.style.display = '';
+    rBtn.disabled = false;
+    rBtn.textContent = '📺 광고 보고 이어하기';
+  }
   document.getElementById('overlay').classList.add('show');
   playGameOverSfx();
   haptic('gameover');
 }
+// ============ 아이템 UI/로직 ============
+function showToast(msg, ms) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(showToast._h);
+  showToast._h = setTimeout(() => t.classList.remove('show'), ms || 1500);
+}
+
+function updateKnifeSlot() {
+  const slot = document.getElementById('knifeSlot');
+  const descEl = document.getElementById('knifeDesc');
+  const priceEl = document.getElementById('knifePrice');
+  slot.classList.remove('active', 'used', 'ready');
+
+  if (knifeMode && inventory.knife > 0) {
+    slot.classList.add('active');
+    descEl.textContent = '과일 선택';
+    priceEl.style.display = 'none';
+  } else if (inventory.knife > 0) {
+    slot.classList.add('ready');
+    descEl.textContent = '탭해서 사용';
+    priceEl.style.display = 'none';
+  } else if (!knifeAvailable) {
+    slot.classList.add('used');
+    descEl.textContent = '사용 완료';
+    priceEl.style.display = 'none';
+  } else {
+    descEl.textContent = '한 개 제거';
+    priceEl.textContent = '💎 ' + KNIFE_PRICE;
+    priceEl.style.display = '';
+  }
+}
+
+async function onKnifeSlotTap() {
+  if (gameOver) return;
+  if (!knifeAvailable && inventory.knife === 0) return;
+  if (inventory.knife > 0) {
+    // 사용 모드 토글
+    knifeMode = !knifeMode;
+    updateKnifeSlot();
+    return;
+  }
+  // 구매 시도
+  try {
+    const result = await ParentBridge.buyItem('knife', KNIFE_PRICE);
+    if (result && result.success) {
+      inventory.knife = 1;
+      knifeAvailable = false; // 판당 1개만
+      knifeMode = true; // 구매 후 바로 사용 모드
+      updateKnifeSlot();
+      showToast('🔪 획득! 과일을 탭해 제거', 1600);
+    } else {
+      showToast('💎 다이아가 부족합니다', 1400);
+    }
+  } catch (e) {
+    showToast('구매 실패', 1200);
+  }
+}
+document.getElementById('knifeSlot').addEventListener('click', (e) => {
+  e.stopPropagation();
+  onKnifeSlotTap();
+});
+
+// 칼 사용 — 해당 과일 제거
+function useKnifeOn(f) {
+  if (f.tier > KNIFE_MAX_TIER) {
+    // 제거 불가 등급
+    showToast('이 등급은 제거할 수 없습니다 🚫', 1200);
+    triggerShake(3, 0.1);
+    haptic('merge');
+    return false;
+  }
+  // 제거 연출
+  spawnBurst(f.x, f.y, TIERS[f.tier].color, 18);
+  spawnPop(f.x, f.y, TIERS[f.tier].color, f.r * 0.9);
+  spawnStreaks(f.x, f.y, '#ffffff', 8);
+  f.dead = true;
+  inventory.knife = 0;
+  knifeMode = false;
+  updateKnifeSlot();
+  haptic('big');
+  return true;
+}
+
+// 포인터 위치에서 과일 찾기 (위 쌓인 것 우선)
+function findFruitAt(px, py) {
+  // 뒤에 추가된 과일부터 (위에 그려진 것 우선)
+  for (let i = fruits.length - 1; i >= 0; i--) {
+    const f = fruits[i];
+    if (f.dead) continue;
+    const dx = px - f.x, dy = py - f.y;
+    if (dx * dx + dy * dy <= f.r * f.r) return f;
+  }
+  return null;
+}
+
+// ============ 이어하기 (광고) ============
+async function onReviveTap() {
+  if (reviveUsed) { showToast('이미 이어하기를 사용했습니다', 1400); return; }
+  const btn = document.getElementById('reviveBtn');
+  btn.disabled = true;
+  btn.textContent = '📺 광고 재생 중…';
+  try {
+    const result = await ParentBridge.watchAd('revive');
+    if (result && result.success) {
+      reviveAfterAd();
+    } else {
+      btn.disabled = false;
+      btn.textContent = '📺 광고 보고 이어하기';
+      showToast('광고가 중단되었습니다', 1400);
+    }
+  } catch (e) {
+    btn.disabled = false;
+    btn.textContent = '📺 광고 보고 이어하기';
+    showToast('광고 실패', 1200);
+  }
+}
+function reviveAfterAd() {
+  // 상단 3개 제거 (라인 넘은 것 우선)
+  const alive = fruits.filter(f => !f.dead);
+  const sorted = alive.sort((a, b) => {
+    const aOver = a.overLineAt ? 1 : 0;
+    const bOver = b.overLineAt ? 1 : 0;
+    if (aOver !== bOver) return bOver - aOver;
+    return a.y - b.y; // Y 작은(위) 순
+  });
+  const targets = sorted.slice(0, 3);
+  for (const f of targets) {
+    spawnBurst(f.x, f.y, TIERS[f.tier].color, 20);
+    spawnPop(f.x, f.y, TIERS[f.tier].color, f.r);
+    f.dead = true;
+  }
+  // 남은 과일의 overLineAt 리셋
+  for (const f of fruits) { if (!f.dead) f.overLineAt = 0; }
+  reviveUsed = true;
+  gameOver = false;
+  document.getElementById('overlay').classList.remove('show');
+  document.getElementById('reviveBtn').style.display = 'none';
+  triggerFlash(0.4);
+  triggerShake(6, 0.3);
+  haptic('big');
+  showToast('부활! 🎉', 1400);
+}
+document.getElementById('reviveBtn').addEventListener('click', (e) => {
+  e.stopPropagation();
+  onReviveTap();
+});
+
+// ============ 도감 — 실제 게임 내 과일 모습 스프라이트 ============
+const fruitSpriteCache = {}; // tier idx → dataURL
+
+// drawFruit을 오프스크린 캔버스에 재사용해 실제 과일 이미지 생성
+function renderFruitSprite(tierIdx) {
+  if (fruitSpriteCache[tierIdx]) return fruitSpriteCache[tierIdx];
+  const SIZE = 160; // 스프라이트 크기 (고해상도)
+  const sprite = document.createElement('canvas');
+  sprite.width = sprite.height = SIZE;
+  const sctx = sprite.getContext('2d');
+  // 가짜 과일 데이터 (중앙 배치, 회전 없음)
+  const fakeFruit = {
+    x: SIZE / 2,
+    y: SIZE / 2 + 8,       // 꼭지/잎이 위로 올라가니 살짝 내림
+    tier: tierIdx,
+    r: SIZE * 0.32,         // 여백 확보 (꼭지/크라운 공간)
+    angle: 0,
+    dead: false,
+    squashTime: 0,
+    faceState: 0,
+    faceTimer: 0,
+    createdAt: 0,
+    overLineAt: 0,
+    merged: false,
+    mass: 1, invMass: 1,
+    vx: 0, vy: 0, va: 0,
+    id: 0,
+    groundedTick: 0,
+  };
+  // ctx 임시 교체 → drawFruit 그대로 사용
+  const savedCtx = ctx;
+  ctx = sctx;
+  try {
+    drawFruit(fakeFruit, 1.0);
+  } catch (e) {
+    console.error('sprite render error', e);
+  }
+  ctx = savedCtx;
+  const url = sprite.toDataURL();
+  fruitSpriteCache[tierIdx] = url;
+  return url;
+}
+
+function renderDex() {
+  const grid = document.getElementById('dexGrid');
+  grid.innerHTML = '';
+  TIERS.forEach((t, i) => {
+    const cell = document.createElement('div');
+    const unlocked = unlockedTiers.has(i);
+    cell.className = 'dex-cell' + (unlocked ? '' : ' locked');
+    const url = renderFruitSprite(i);
+    // sprite를 img로 넣어서 잠금 상태에서만 CSS 필터 적용 (텍스트는 필터 영향 X)
+    cell.innerHTML = `
+      <img class="dex-sprite" src="${url}" alt="">
+      <div class="tier-num">${i + 1}</div>
+      <div class="tier-name">${t.name}</div>
+    `;
+    grid.appendChild(cell);
+  });
+  const count = unlockedTiers.size;
+  document.getElementById('dexCount').textContent = count;
+  document.getElementById('dexTotal').textContent = TIERS.length;
+  document.getElementById('dexFill').style.width = (count / TIERS.length * 100) + '%';
+}
+document.getElementById('dexBtn').addEventListener('click', (e) => {
+  e.stopPropagation();
+  renderDex();
+  document.getElementById('dexOverlay').classList.add('show');
+});
+document.getElementById('dexClose').addEventListener('click', (e) => {
+  e.stopPropagation();
+  document.getElementById('dexOverlay').classList.remove('show');
+});
+
+// 초기 아이템 슬롯 표시
+updateKnifeSlot();
+
 // 튜토리얼 (최초 1회만)
 (function () {
   if (!safeStorage.get('suika_tutorial_seen')) {
@@ -599,20 +1190,6 @@ document.getElementById('muteBtn').addEventListener('click', (e) => {
   }
 });
 
-document.getElementById('testBtn').addEventListener('click', (e) => {
-  e.stopPropagation();
-  testMode = true;
-  const nT = TIERS.length;
-  const gap = W / (nT + 1);
-  for (let i = 0; i < nT; i++) {
-    const x = gap * (i + 1);
-    const rr = TIERS[i].r;
-    const y = Math.max(rr + 10, LINE_Y - rr - 10);
-    setTimeout(() => { fruits.push(Fruit(x, y, i)); }, i * 80);
-  }
-  // 테스트 끝나면 자동 해제
-  setTimeout(() => { testMode = false; }, nT * 80 + 5000);
-});
 
 document.getElementById('restartBtn').addEventListener('click', (e) => {
   e.stopPropagation();
@@ -626,6 +1203,8 @@ document.getElementById('restartBtn').addEventListener('click', (e) => {
   lastMergeTime = 0;
   score = 0;
   displayScore = 0;
+  resetStats();
+  resetItems();
   document.getElementById('score').textContent = '0';
   currentTier = randomSpawnTier();
   nextTier = randomSpawnTier();
@@ -633,6 +1212,12 @@ document.getElementById('restartBtn').addEventListener('click', (e) => {
   gameOver = false;
   testMode = false;
   document.getElementById('overlay').classList.remove('show');
+  // 이어하기 버튼 복구
+  const rBtn = document.getElementById('reviveBtn');
+  rBtn.disabled = false;
+  rBtn.textContent = '📺 광고 보고 이어하기';
+  rBtn.style.display = '';
+  updateKnifeSlot();
 });
 
 // ============ 렌더링 ============
@@ -861,8 +1446,32 @@ function drawFruit(f, alpha) {
   ctx.ellipse(-r * 0.1, -r * 0.55, r * 0.08, r * 0.04, 0.2, 0, Math.PI * 2);
   ctx.fill();
 
-  // 얼굴 (과일별 다른 표정)
-  drawFace(r, t.face || 'smile');
+  // 얼굴 — 상태에 따라 오버라이드 (낙하=놀람, 합체=기쁨, 라인=땀)
+  let face = t.face || 'smile';
+  if (f && f.faceState === 1) face = 'surprised';
+  else if (f && f.faceState === 2) face = 'happy';
+  drawFace(r, face);
+  // 땀방울 (상태 3)
+  if (f && f.faceState === 3) {
+    ctx.save();
+    ctx.fillStyle = '#7cc4ff';
+    ctx.strokeStyle = '#3a8ac4';
+    ctx.lineWidth = 1;
+    const sx = r * 0.5, sy = -r * 0.05;
+    ctx.beginPath();
+    ctx.moveTo(sx, sy - r * 0.2);
+    ctx.quadraticCurveTo(sx + r * 0.12, sy - r * 0.05, sx + r * 0.08, sy + r * 0.08);
+    ctx.quadraticCurveTo(sx - r * 0.05, sy + r * 0.08, sx - r * 0.06, sy - r * 0.05);
+    ctx.quadraticCurveTo(sx - r * 0.02, sy - r * 0.15, sx, sy - r * 0.2);
+    ctx.closePath();
+    ctx.fill(); ctx.stroke();
+    // 하이라이트
+    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    ctx.beginPath();
+    ctx.ellipse(sx - r * 0.02, sy - r * 0.08, r * 0.025, r * 0.04, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
 
   // === 과일별 상단 장식 (꼭지/잎/크라운) ===
   if (n === '체리') {
@@ -1099,17 +1708,19 @@ function drawBackground() {
   ensureBgCache();
   // 캐시된 정적 배경 한 번에 복사
   ctx.drawImage(bgCache, 0, 0, W, H);
-  // 흔들리는 잎사귀 (동적)
+  // 흔들리는 잎사귀 (크게 + 좌우 균형)
   const t = performance.now() / 1000;
   const sway1 = Math.sin(t * 0.8) * 0.06;
   const sway2 = Math.sin(t * 0.6 + 1.2) * 0.05;
-  drawLeafCluster(18, 35, 55, -0.35 + sway1, 0);
-  drawLeafCluster(W - 18, 38, 52, Math.PI + 0.3 + sway2, 1);
-  drawLeafCluster(W * 0.25, 8, 38, -0.5 + sway1 * 1.3, 2);
-  drawLeafCluster(W * 0.78, 12, 42, 0.6 + sway2 * 1.2, 0);
+  // 좌측 상단: 크게 (점수 UI 프레임 역할)
+  drawLeafCluster(10, 58, 88, -0.3 + sway1, 0);
+  drawLeafCluster(W * 0.22, 18, 66, -0.55 + sway2 * 1.2, 2);
+  // 우측 상단: 크게
+  drawLeafCluster(W - 10, 60, 85, Math.PI + 0.28 + sway2, 1);
+  drawLeafCluster(W * 0.78, 20, 68, 0.55 + sway1 * 1.1, 0);
   // 덩굴 끝 잎
-  drawSmallLeaf(38 + Math.sin(t * 1.1) * 2, 170, -0.3);
-  drawSmallLeaf(W - 38 - Math.sin(t * 0.9) * 2, 190, 0.3 + Math.PI);
+  drawSmallLeaf(38 + Math.sin(t * 1.1) * 2, 180, -0.3);
+  drawSmallLeaf(W - 38 - Math.sin(t * 0.9) * 2, 200, 0.3 + Math.PI);
 }
 
 function _drawBackgroundOld() {
@@ -1456,7 +2067,7 @@ function tickDisplayScore() {
   const step = Math.max(1, Math.ceil(Math.abs(diff) * 0.12));
   displayScore += diff > 0 ? step : -step;
   if ((diff > 0 && displayScore > score) || (diff < 0 && displayScore < score)) displayScore = score;
-  document.getElementById('score').textContent = displayScore;
+  document.getElementById('score').textContent = displayScore.toLocaleString();
 }
 
 // ============ 오디오 (SFX) ============
@@ -1592,17 +2203,19 @@ function bgmScheduler() {
   if (!bgm.playing) return;
   const ac = getAudio();
   if (!ac) { bgm.playing = false; return; }
-  // 0.3초 앞까지 예약
   const lookAhead = 0.3;
+  const danger = Math.max(0, Math.min(1, window.__lineDanger || 0));
+  // 위험도에 따라 템포 최대 35% 빨라짐
+  const stepDur = BGM_STEP_DUR * (1 - danger * 0.35);
+  const pitchMul = 1 + danger * 0.15; // 살짝 높아짐
   while (bgm.nextTime < ac.currentTime + lookAhead) {
     const idx = bgm.step % BGM_MELODY.length;
-    scheduleBgmNote(BGM_MELODY[idx], bgm.nextTime, BGM_STEP_DUR * 0.85, 'triangle', 0.07);
-    // 매 4스텝마다 베이스 노트
+    scheduleBgmNote(BGM_MELODY[idx] * pitchMul, bgm.nextTime, stepDur * 0.85, 'triangle', 0.07);
     if (bgm.step % 4 === 0) {
-      scheduleBgmNote(BGM_BASS[idx], bgm.nextTime, BGM_STEP_DUR * 3.5, 'sine', 0.05);
+      scheduleBgmNote(BGM_BASS[idx] * pitchMul, bgm.nextTime, stepDur * 3.5, 'sine', 0.05);
     }
     bgm.step++;
-    bgm.nextTime += BGM_STEP_DUR;
+    bgm.nextTime += stepDur;
   }
   setTimeout(bgmScheduler, 80);
 }
@@ -1622,6 +2235,66 @@ function scheduleBgmNote(freq, startTime, duration, type, vol) {
   osc.connect(g).connect(bgm.masterGain);
   osc.start(startTime);
   osc.stop(startTime + duration + 0.02);
+}
+
+// ============ 스크린 셰이크 / 슬로우모션 / 플래시 ============
+let shakeAmount = 0;
+let shakeDecay = 0;
+let slowMoFactor = 1;
+let slowMoTimer = 0;
+let flashAlpha = 0;
+
+function triggerShake(strength, duration) {
+  shakeAmount = Math.max(shakeAmount, strength);
+  shakeDecay = Math.max(shakeDecay, duration);
+}
+function triggerSlowMo(factor, duration) {
+  slowMoFactor = factor;
+  slowMoTimer = duration;
+}
+function triggerFlash(alpha) {
+  flashAlpha = Math.max(flashAlpha, alpha);
+}
+function updateEffects(dt) {
+  if (shakeDecay > 0) {
+    shakeDecay -= dt;
+    if (shakeDecay <= 0) { shakeDecay = 0; shakeAmount = 0; }
+  }
+  if (slowMoTimer > 0) {
+    slowMoTimer -= dt;
+    if (slowMoTimer <= 0) { slowMoTimer = 0; slowMoFactor = 1; }
+  }
+  if (flashAlpha > 0) {
+    flashAlpha = Math.max(0, flashAlpha - dt * 2);
+  }
+}
+function applyShake() {
+  if (shakeAmount <= 0) return;
+  const intensity = shakeAmount * (shakeDecay > 0 ? 1 : 0);
+  const sx = (Math.random() - 0.5) * intensity * 2;
+  const sy = (Math.random() - 0.5) * intensity * 2;
+  ctx.translate(sx, sy);
+}
+function drawFlash() {
+  if (flashAlpha <= 0) return;
+  ctx.fillStyle = `rgba(255, 255, 255, ${flashAlpha})`;
+  ctx.fillRect(0, 0, W, H);
+}
+
+// ============ 위험 비네트 ============
+function drawDangerVignette() {
+  const danger = Math.max(0, Math.min(1, window.__lineDanger || 0));
+  if (danger < 0.05) return;
+  const pulse = 0.7 + Math.sin(performance.now() / 140) * 0.3 * danger;
+  const cx = W / 2, cy = H / 2;
+  const inner = Math.min(W, H) * 0.35;
+  const outer = Math.max(W, H) * 0.85;
+  const grad = ctx.createRadialGradient(cx, cy, inner, cx, cy, outer);
+  grad.addColorStop(0, 'rgba(255,0,0,0)');
+  grad.addColorStop(0.6, `rgba(255,30,30,${danger * 0.25 * pulse})`);
+  grad.addColorStop(1, `rgba(255,0,0,${danger * 0.55 * pulse})`);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
 }
 
 // ============ 햅틱 ============
@@ -1787,6 +2460,45 @@ function drawPreview() {
   drawFruit({ x, y, angle: 0, r, tier: currentTier }, 0.9);
 }
 
+// 칼 모드 — 제거 불가 과일에 빨간 X, 제거 가능 과일에 녹색 테두리 펄스
+function drawKnifeOverlay() {
+  const pulse = 0.7 + Math.sin(performance.now() / 180) * 0.3;
+  for (const f of fruits) {
+    if (f.dead) continue;
+    if (f.tier > KNIFE_MAX_TIER) {
+      // 제거 불가 — 빨간 X
+      ctx.save();
+      ctx.globalAlpha = 0.9;
+      // 어두운 반투명 오버레이
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      ctx.beginPath();
+      ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
+      ctx.fill();
+      // X 표시
+      const s = f.r * 0.55;
+      ctx.strokeStyle = '#ff3030';
+      ctx.lineWidth = Math.max(4, f.r * 0.1);
+      ctx.lineCap = 'round';
+      ctx.shadowColor = 'rgba(0,0,0,0.6)';
+      ctx.shadowBlur = 4;
+      ctx.beginPath();
+      ctx.moveTo(f.x - s, f.y - s); ctx.lineTo(f.x + s, f.y + s);
+      ctx.moveTo(f.x + s, f.y - s); ctx.lineTo(f.x - s, f.y + s);
+      ctx.stroke();
+      ctx.restore();
+    } else {
+      // 제거 가능 — 녹색 테두리 펄스
+      ctx.save();
+      ctx.strokeStyle = `rgba(100, 255, 100, ${0.5 * pulse})`;
+      ctx.lineWidth = Math.max(2, f.r * 0.05);
+      ctx.beginPath();
+      ctx.arc(f.x, f.y, f.r + 3, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+}
+
 // 떨어질 위치에 희미한 원 그림자 표시 (점선 없음)
 function drawDropShadow() {
   if (!canDrop || gameOver) return;
@@ -1826,9 +2538,12 @@ function loop(now) {
   lastT = now;
   if (dt > 0.05) dt = 0.05;
 
+  // 슬로우모션 적용된 물리 델타
+  const physDt = dt * slowMoFactor;
+
   if (!gameOver && !paused) {
     const sub = 3;
-    const sdt = dt / sub;
+    const sdt = physDt / sub;
     for (let i = 0; i < sub; i++) physicsStep(sdt);
     checkGameOver();
   }
@@ -1836,28 +2551,35 @@ function loop(now) {
   updateParticles(dt);
   updatePopups(dt);
   updateAchievement(dt);
+  updateEffects(dt);
   tickDisplayScore();
 
   ctx.clearRect(0, 0, W, H);
+
+  // 스크린 셰이크 적용
+  ctx.save();
+  applyShake();
+
   drawBackground();
   drawGround();
   drawLine();
   for (const f of fruits) drawFruit(f);
   drawParticles();
   drawPops();
+  if (knifeMode) drawKnifeOverlay(); // 칼 모드: 제거 불가 과일에 X
   drawDropShadow();
-  drawPreview();
+  if (!knifeMode) drawPreview();
   drawPopups();
+
+  ctx.restore();
+
+  // 위험 비네트 (셰이크 영향 X)
+  drawDangerVignette();
+  // 플래시 (위에 덮어씀)
+  drawFlash();
+  // HUD성 오버레이
   drawCombo();
   drawAchievement();
-
-  frameCount++;
-  fpsTimer += dt;
-  if (fpsTimer >= 0.5) {
-    fps = Math.round(frameCount / fpsTimer);
-    dbg.textContent = `${W}×${H} · FPS ${fps} · 과일 ${fruits.length} · LINE ${LINE_Y.toFixed(0)}`;
-    frameCount = 0; fpsTimer = 0;
-  }
 
   requestAnimationFrame(loop);
 }
