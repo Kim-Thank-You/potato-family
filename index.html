@@ -24,6 +24,21 @@
     background: linear-gradient(180deg, #2a5f6b 0%, #4a8a76 55%, #6fb27a 100%);
     overflow: hidden; cursor: pointer;
   }
+  /* PC 미리보기 (큰 화면)에서만 모바일 프레임 */
+  @media (min-width: 500px) {
+    body { display: flex; align-items: center; justify-content: center; }
+    #wrap {
+      width: min(420px, calc(100vh * 9 / 16));
+      height: min(747px, 100vh);
+      width: min(420px, calc(100dvh * 9 / 16));
+      height: min(747px, 100dvh);
+      border-radius: 28px;
+      box-shadow:
+        0 20px 60px rgba(0,0,0,0.55),
+        0 0 0 4px #111,
+        inset 0 0 0 1px rgba(255,255,255,0.06);
+    }
+  }
   canvas { display: block; position: absolute; inset: 0; pointer-events: none; }
   .hud {
     position: absolute; top: 0; left: 0; right: 0;
@@ -162,8 +177,10 @@ let W = 0, H = 0, LINE_Y = 0;
 const DPR = Math.min(window.devicePixelRatio || 1, 2);
 
 function resize() {
-  W = window.innerWidth;
-  H = window.innerHeight;
+  const wrapEl = document.getElementById('wrap');
+  const rect = wrapEl.getBoundingClientRect();
+  W = rect.width || window.innerWidth;
+  H = rect.height || window.innerHeight;
   canvas.style.width = W + 'px';
   canvas.style.height = H + 'px';
   canvas.width = Math.floor(W * DPR);
@@ -174,6 +191,12 @@ function resize() {
 window.addEventListener('resize', resize);
 window.addEventListener('orientationchange', resize);
 resize();
+requestAnimationFrame(resize); // CSS 적용 후 한 번 더
+try {
+  if ('ResizeObserver' in window) {
+    new ResizeObserver(resize).observe(document.getElementById('wrap'));
+  }
+} catch (e) {}
 
 // ============ 자체 물리 엔진 ============
 const GRAVITY = 1800;     // px/s²
