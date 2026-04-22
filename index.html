@@ -173,6 +173,29 @@
     opacity: 0; transition: opacity 0.2s;
   }
   .toast.show { opacity: 1; }
+  #rotateOverlay {
+    position: fixed; inset: 0; z-index: 999;
+    background: #000; color: #fff;
+    display: none; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 24px;
+    font-family: 'Jua', sans-serif;
+  }
+  #rotateOverlay.show { display: flex; }
+  #rotateOverlay .rotate-icon {
+    font-size: 80px;
+    animation: rotateHint 1.6s ease-in-out infinite;
+    transform-origin: center;
+  }
+  #rotateOverlay .rotate-text {
+    font-size: 22px; text-align: center; line-height: 1.5;
+    color: #ffde59; text-shadow: 0 2px 0 rgba(0,0,0,0.5);
+  }
+  @keyframes rotateHint {
+    0%, 15%  { transform: rotate(90deg); }
+    50%      { transform: rotate(0); }
+    85%, 100%{ transform: rotate(90deg); }
+  }
   #muteBtn, #dexBtn {
     position: absolute; top: 12px; z-index: 20;
     width: 36px; height: 36px; border-radius: 50%;
@@ -341,15 +364,21 @@
 
   <!-- 하단 우측 아이템 바 -->
   <div id="itemBar">
-    <div class="item-slot" id="knifeSlot">
-      <span class="icon">🔪</span>
-      <span class="desc" id="knifeDesc">한 개 제거</span>
-      <span class="price-tag" id="knifePrice">💎 2</span>
+    <div class="item-slot" id="potionSlot">
+      <span class="icon">🧪</span>
+      <span class="desc" id="potionDesc">한 개 진화</span>
+      <span class="price-tag" id="potionPrice">💎 2</span>
     </div>
   </div>
 
   <!-- 토스트 -->
   <div class="toast" id="toast"></div>
+
+  <!-- 세로모드 강제 안내 -->
+  <div id="rotateOverlay">
+    <div class="rotate-icon">📱</div>
+    <div class="rotate-text">세로 모드로<br>돌려주세요</div>
+  </div>
 
   <button id="muteBtn" title="소리 켜기/끄기">🔊</button>
   <button id="dexBtn" title="도감">📖</button>
@@ -411,18 +440,23 @@ window.ParentBridge = window.ParentBridge || {
 };
 
 // ============ 아이템 상수/상태 ============
-const KNIFE_PRICE = 2;       // 다이아 가격
-const KNIFE_MAX_TIER = 7;    // 인덱스 7 = 복숭아. 0~7까지 제거 가능, 8~10(파인애플/멜론/감자) 불가
-const inventory = { knife: 0 };
-let knifeAvailable = true;   // 이번 판에 아직 구매 가능?
-let knifeMode = false;       // 사용 모드 (과일 탭 대기)
-let reviveUsed = false;      // 이번 판에 이어하기 썼는지
+const POTION_PRICE = 2;       // 다이아 가격
+const POTION_MAX_TIER = 6;    // 인덱스 6 = 사과. 0~6 진화 가능 → 최대 결과 배(7)
+const REVIVE_MAX_TIER = 7;    // 복숭아 이하 제거 가능. 파인애플/멜론/감자 불가
+const inventory = { potion: 0 };
+let potionAvailable = true;   // 이번 판에 아직 구매 가능?
+let potionMode = false;       // 사용 모드 (과일 탭 대기)
+let reviveUsed = false;       // 이번 판에 이어하기 썼는지
+let reviveMode = false;       // 이어하기 3개 선택 중
+let reviveRemaining = 0;      // 남은 선택 횟수
 
 function resetItems() {
-  inventory.knife = 0;
-  knifeAvailable = true;
-  knifeMode = false;
+  inventory.potion = 0;
+  potionAvailable = true;
+  potionMode = false;
   reviveUsed = false;
+  reviveMode = false;
+  reviveRemaining = 0;
 }
 
 // 스크립트 시작 확인용
@@ -435,12 +469,12 @@ const TIERS = [
   { name: '포도',     color: '#7B1FA2', r: 28,  face: 'wink-r' },                          // 3단계: 보라
   { name: '귤',       color: '#FB8C00', r: 37,  face: 'blush'  },                          // 4단계: 주황
   { name: '감',       color: '#C2185B', r: 47,  face: 'happy'  },                          // 5단계: 딥 라즈베리
-  { name: '사과',     color: '#43A047', r: 55,  face: 'cat'    },                          // 초록 (청사과) [5%↓]
-  { name: '배',       color: '#DCE775', color2: '#F9A825', r: 67,  face: 'tongue' },       // 연두→골드 [5%↓]
-  { name: '복숭아',   color: '#FF7043', color2: '#FDD835', r: 78,  face: 'blush'  },       // 산호→노랑 [5%↓]
-  { name: '파인애플', color: '#FFD54F', color2: '#E65100', r: 89,  face: 'smug'   },       // 노랑→진주황 [5%↓]
-  { name: '멜론',     color: '#9CCC65', color2: '#F06292', r: 101, face: 'wink-l' },       // 연두→핫핑크 [5%↓]
-  { name: '감자',     color: '#8D6E63', color2: '#EF6C00', r: 112, face: 'stoic'  },       // 갈색→주황 [5%↓]
+  { name: '사과',     color: '#43A047', r: 56,  face: 'cat'    },                          // 초록 (청사과) [3%↓]
+  { name: '배',       color: '#DCE775', color2: '#F9A825', r: 68,  face: 'tongue' },       // 연두→골드 [3%↓]
+  { name: '복숭아',   color: '#FF7043', color2: '#FDD835', r: 80,  face: 'blush'  },       // 산호→노랑 [3%↓]
+  { name: '파인애플', color: '#FFD54F', color2: '#E65100', r: 91,  face: 'smug'   },       // 노랑→진주황 [3%↓]
+  { name: '멜론',     color: '#9CCC65', color2: '#F06292', r: 103, face: 'wink-l' },       // 연두→핫핑크 [3%↓]
+  { name: '감자',     color: '#8D6E63', color2: '#EF6C00', r: 114, face: 'stoic'  },       // 갈색→주황 [3%↓]
 ];
 
 // ============ 캔버스 / 렌더링 셋업 ============
@@ -722,13 +756,12 @@ function calcBoardScore() {
 }
 
 function randomSpawnTier() {
-  // 점수 기반 동적 가중치 (보드 기반 점수로 변경돼서 임계값 더 큼)
-  // progress 0:  체리 63 / 딸기 32 / 포도 4  / 귤 1
-  // progress 1:  체리 45 / 딸기 30 / 포도 15 / 귤 10
-  const progress = Math.min(1, score / 30000);
-  const pCherry     = 0.63 - 0.18 * progress;
-  const pStrawberry = 0.32 - 0.02 * progress;
-  const pGrape      = 0.04 + 0.11 * progress;
+  // progress 0: 체리 60 / 딸기 32 / 포도 6 / 귤 2
+  // progress 1: 체리 30 / 딸기 28 / 포도 27 / 귤 15
+  const progress = Math.min(1, score / 5000);
+  const pCherry     = 0.60 - 0.30 * progress;
+  const pStrawberry = 0.32 - 0.04 * progress;
+  const pGrape      = 0.06 + 0.21 * progress;
   const r = Math.random();
   if (r < pCherry) return 0;
   if (r < pCherry + pStrawberry) return 1;
@@ -853,15 +886,26 @@ function onDown(e) {
   const x = getEventX(e);
   const y = getEventY(e);
 
-  // 칼 모드 — 과일 제거 or 취소 (절대 드롭 X)
-  if (knifeMode) {
+  // 이어하기 선택 모드 — 3개 선택까지 과일만 제거, 드롭 X
+  if (reviveMode) {
     if (x != null && y != null) {
       const f = findFruitAt(x, y);
-      if (f && inventory.knife > 0) {
-        useKnifeOn(f);
-      } else {
-        knifeMode = false;
-        updateKnifeSlot();
+      if (f) applyReviveSelection(f);
+      // 빈 공간 탭 무시 (실수로 취소 방지)
+    }
+    e.preventDefault && e.preventDefault();
+    return;
+  }
+
+  // 물약 모드 — 과일 진화 or 취소
+  if (potionMode) {
+    if (x != null && y != null) {
+      const f = findFruitAt(x, y);
+      if (f && inventory.potion > 0) {
+        usePotionOn(f);
+      } else if (!f) {
+        potionMode = false;
+        updatePotionSlot();
       }
     }
     e.preventDefault && e.preventDefault();
@@ -903,12 +947,41 @@ let testMode = false; // 전체 과일 테스트 중엔 게임오버 판정 금�
 
 // 탭 백그라운드 / 포커스 잃을 때 일시정지
 document.addEventListener('visibilitychange', () => {
-  paused = document.hidden;
+  paused = document.hidden || isLandscape();
   if (paused) {
-    // 백그라운드 복귀 시 타이머 오인식 방지 — 모든 overLineAt 리셋
     for (const f of fruits) f.overLineAt = 0;
   }
 });
+
+// 가로모드 감지 + 강제 세로 유도
+function isLandscape() {
+  return window.innerWidth > window.innerHeight && window.innerWidth < 1100;
+}
+function updateOrientation() {
+  const rotateEl = document.getElementById('rotateOverlay');
+  if (!rotateEl) return;
+  if (isLandscape()) {
+    rotateEl.classList.add('show');
+    paused = true;
+    // 라인 카운트 리셋 (복귀 시 즉시 게임오버 방지)
+    for (const f of fruits) f.overLineAt = 0;
+  } else {
+    rotateEl.classList.remove('show');
+    paused = document.hidden;
+  }
+}
+window.addEventListener('resize', updateOrientation);
+window.addEventListener('orientationchange', updateOrientation);
+
+// Screen Orientation API로 세로 락 시도 (지원되는 브라우저에서만)
+try {
+  if (screen.orientation && screen.orientation.lock) {
+    screen.orientation.lock('portrait').catch(() => {}); // 실패해도 무시 (Telegram WebView에선 보통 실패)
+  }
+} catch (e) {}
+
+// 초기 체크
+setTimeout(updateOrientation, 100);
 
 function checkGameOver() {
   if (testMode) return; // 테스트 모드는 게임오버 안 걸림
@@ -937,7 +1010,8 @@ function checkGameOver() {
 }
 function triggerGameOver() {
   gameOver = true;
-  knifeMode = false;
+  potionMode = false;
+  reviveMode = false;
   document.getElementById('finalScore').textContent = score.toLocaleString();
   document.getElementById('statMerges').textContent = stats.mergeCount;
   document.getElementById('statCombo').textContent = stats.maxCombo + '연속';
@@ -968,49 +1042,47 @@ function showToast(msg, ms) {
   showToast._h = setTimeout(() => t.classList.remove('show'), ms || 1500);
 }
 
-function updateKnifeSlot() {
-  const slot = document.getElementById('knifeSlot');
-  const descEl = document.getElementById('knifeDesc');
-  const priceEl = document.getElementById('knifePrice');
+function updatePotionSlot() {
+  const slot = document.getElementById('potionSlot');
+  const descEl = document.getElementById('potionDesc');
+  const priceEl = document.getElementById('potionPrice');
   slot.classList.remove('active', 'used', 'ready');
 
-  if (knifeMode && inventory.knife > 0) {
+  if (potionMode && inventory.potion > 0) {
     slot.classList.add('active');
     descEl.textContent = '과일 선택';
     priceEl.style.display = 'none';
-  } else if (inventory.knife > 0) {
+  } else if (inventory.potion > 0) {
     slot.classList.add('ready');
     descEl.textContent = '탭해서 사용';
     priceEl.style.display = 'none';
-  } else if (!knifeAvailable) {
+  } else if (!potionAvailable) {
     slot.classList.add('used');
     descEl.textContent = '사용 완료';
     priceEl.style.display = 'none';
   } else {
-    descEl.textContent = '한 개 제거';
-    priceEl.textContent = '💎 ' + KNIFE_PRICE;
+    descEl.textContent = '한 개 진화';
+    priceEl.textContent = '💎 ' + POTION_PRICE;
     priceEl.style.display = '';
   }
 }
 
-async function onKnifeSlotTap() {
+async function onPotionSlotTap() {
   if (gameOver) return;
-  if (!knifeAvailable && inventory.knife === 0) return;
-  if (inventory.knife > 0) {
-    // 사용 모드 토글
-    knifeMode = !knifeMode;
-    updateKnifeSlot();
+  if (!potionAvailable && inventory.potion === 0) return;
+  if (inventory.potion > 0) {
+    potionMode = !potionMode;
+    updatePotionSlot();
     return;
   }
-  // 구매 시도
   try {
-    const result = await ParentBridge.buyItem('knife', KNIFE_PRICE);
+    const result = await ParentBridge.buyItem('potion', POTION_PRICE);
     if (result && result.success) {
-      inventory.knife = 1;
-      knifeAvailable = false; // 판당 1개만
-      knifeMode = true; // 구매 후 바로 사용 모드
-      updateKnifeSlot();
-      showToast('🔪 획득! 과일을 탭해 제거', 1600);
+      inventory.potion = 1;
+      potionAvailable = false;
+      potionMode = true;
+      updatePotionSlot();
+      showToast('🧪 획득! 과일을 탭해 진화', 1600);
     } else {
       showToast('💎 다이아가 부족합니다', 1400);
     }
@@ -1018,29 +1090,39 @@ async function onKnifeSlotTap() {
     showToast('구매 실패', 1200);
   }
 }
-document.getElementById('knifeSlot').addEventListener('click', (e) => {
+document.getElementById('potionSlot').addEventListener('click', (e) => {
   e.stopPropagation();
-  onKnifeSlotTap();
+  onPotionSlotTap();
 });
 
-// 칼 사용 — 해당 과일 제거
-function useKnifeOn(f) {
-  if (f.tier > KNIFE_MAX_TIER) {
-    // 제거 불가 등급
-    showToast('이 등급은 제거할 수 없습니다 🚫', 1200);
-    triggerShake(3, 0.1);
+// 물약 사용 — 해당 과일 한 단계 진화
+function usePotionOn(f) {
+  if (f.tier > POTION_MAX_TIER) {
+    // 진화 불가 (파인애플 이상)
+    showToast('더 진화시킬 수 없습니다 🧪', 1200);
     haptic('merge');
     return false;
   }
-  // 제거 연출
-  spawnBurst(f.x, f.y, TIERS[f.tier].color, 18);
-  spawnPop(f.x, f.y, TIERS[f.tier].color, f.r * 0.9);
-  spawnStreaks(f.x, f.y, '#ffffff', 8);
+  const newTier = f.tier + 1;
+  const mx = f.x, my = f.y;
   f.dead = true;
-  inventory.knife = 0;
-  knifeMode = false;
-  updateKnifeSlot();
+  const nf = Fruit(mx, my, newTier);
+  nf.vy = -60;
+  nf.squashTime = 0.22;
+  nf.faceState = 2;
+  nf.faceTimer = 0.35;
+  fruits.push(nf);
+  unlockTier(newTier);
+  stats.maxTier = Math.max(stats.maxTier, newTier);
+  // 진화 연출
+  spawnBurst(mx, my, TIERS[newTier].color, 22);
+  spawnPop(mx, my, TIERS[newTier].color, TIERS[newTier].r);
+  spawnStreaks(mx, my, '#c4a0ff', 10);
+  triggerShake(4, 0.15);
   haptic('big');
+  inventory.potion = 0;
+  potionMode = false;
+  updatePotionSlot();
   return true;
 }
 
@@ -1078,22 +1160,41 @@ async function onReviveTap() {
   }
 }
 function reviveAfterAd() {
-  // 캔버스 상단 1/5 영역 과일 전부 제거 (과일 중심이 해당 영역에 있으면)
-  const zoneBottom = H / 5;
-  for (const f of fruits) {
-    if (f.dead) continue;
-    if (f.y < zoneBottom) {
-      spawnBurst(f.x, f.y, TIERS[f.tier].color, 18);
-      spawnPop(f.x, f.y, TIERS[f.tier].color, f.r);
-      f.dead = true;
-    }
-  }
-  // 남은 과일의 overLineAt 리셋
-  for (const f of fruits) { if (!f.dead) f.overLineAt = 0; }
   reviveUsed = true;
+  reviveMode = true;
+  reviveRemaining = 3;
   gameOver = false;
   document.getElementById('overlay').classList.remove('show');
   document.getElementById('reviveBtn').style.display = 'none';
+  showToast('제거할 과일 3개를 선택하세요', 2000);
+  haptic('merge');
+}
+
+function applyReviveSelection(f) {
+  if (f.tier > REVIVE_MAX_TIER) {
+    showToast('이 등급은 제거할 수 없습니다 🚫', 1200);
+    haptic('merge');
+    return false;
+  }
+  spawnBurst(f.x, f.y, TIERS[f.tier].color, 20);
+  spawnPop(f.x, f.y, TIERS[f.tier].color, f.r);
+  f.dead = true;
+  reviveRemaining--;
+  haptic('merge');
+  if (reviveRemaining > 0) {
+    const aliveCount = fruits.filter(x => !x.dead).length;
+    if (aliveCount === 0) finishRevive();
+    else showToast(`${reviveRemaining}개 더 선택`, 900);
+  } else {
+    finishRevive();
+  }
+  return true;
+}
+
+function finishRevive() {
+  reviveMode = false;
+  reviveRemaining = 0;
+  for (const f of fruits) { if (!f.dead) f.overLineAt = 0; }
   triggerFlash(0.4);
   triggerShake(6, 0.3);
   haptic('big');
@@ -1179,7 +1280,7 @@ document.getElementById('dexClose').addEventListener('click', (e) => {
 });
 
 // 초기 아이템 슬롯 표시
-updateKnifeSlot();
+updatePotionSlot();
 
 // 튜토리얼 (최초 1회만)
 (function () {
@@ -1234,7 +1335,7 @@ document.getElementById('restartBtn').addEventListener('click', (e) => {
   rBtn.disabled = false;
   rBtn.textContent = '📺 광고 보고 이어하기';
   rBtn.style.display = '';
-  updateKnifeSlot();
+  updatePotionSlot();
 });
 
 // ============ 렌더링 ============
@@ -2480,36 +2581,37 @@ function drawPreview() {
   drawFruit({ x, y, angle: 0, r, tier: currentTier }, 0.9);
 }
 
-// 칼 모드 — 제거 불가 과일에 빨간 X, 제거 가능 과일에 녹색 테두리 펄스
-function drawKnifeOverlay() {
+// 공통: 제거 불가 등급 과일에 빨간 X 표시
+function drawForbiddenX(f) {
+  ctx.save();
+  ctx.globalAlpha = 0.9;
+  ctx.fillStyle = 'rgba(0,0,0,0.35)';
+  ctx.beginPath();
+  ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
+  ctx.fill();
+  const s = f.r * 0.55;
+  ctx.strokeStyle = '#ff3030';
+  ctx.lineWidth = Math.max(4, f.r * 0.1);
+  ctx.lineCap = 'round';
+  ctx.shadowColor = 'rgba(0,0,0,0.6)';
+  ctx.shadowBlur = 4;
+  ctx.beginPath();
+  ctx.moveTo(f.x - s, f.y - s); ctx.lineTo(f.x + s, f.y + s);
+  ctx.moveTo(f.x + s, f.y - s); ctx.lineTo(f.x - s, f.y + s);
+  ctx.stroke();
+  ctx.restore();
+}
+
+// 물약 모드 — 진화 불가(파인애플 이상)에 X, 진화 가능에 보라 펄스
+function drawPotionOverlay() {
   const pulse = 0.7 + Math.sin(performance.now() / 180) * 0.3;
   for (const f of fruits) {
     if (f.dead) continue;
-    if (f.tier > KNIFE_MAX_TIER) {
-      // 제거 불가 — 빨간 X
-      ctx.save();
-      ctx.globalAlpha = 0.9;
-      // 어두운 반투명 오버레이
-      ctx.fillStyle = 'rgba(0,0,0,0.35)';
-      ctx.beginPath();
-      ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
-      ctx.fill();
-      // X 표시
-      const s = f.r * 0.55;
-      ctx.strokeStyle = '#ff3030';
-      ctx.lineWidth = Math.max(4, f.r * 0.1);
-      ctx.lineCap = 'round';
-      ctx.shadowColor = 'rgba(0,0,0,0.6)';
-      ctx.shadowBlur = 4;
-      ctx.beginPath();
-      ctx.moveTo(f.x - s, f.y - s); ctx.lineTo(f.x + s, f.y + s);
-      ctx.moveTo(f.x + s, f.y - s); ctx.lineTo(f.x - s, f.y + s);
-      ctx.stroke();
-      ctx.restore();
+    if (f.tier > POTION_MAX_TIER) {
+      drawForbiddenX(f);
     } else {
-      // 제거 가능 — 녹색 테두리 펄스
       ctx.save();
-      ctx.strokeStyle = `rgba(100, 255, 100, ${0.5 * pulse})`;
+      ctx.strokeStyle = `rgba(180, 100, 255, ${0.55 * pulse})`;
       ctx.lineWidth = Math.max(2, f.r * 0.05);
       ctx.beginPath();
       ctx.arc(f.x, f.y, f.r + 3, 0, Math.PI * 2);
@@ -2517,6 +2619,37 @@ function drawKnifeOverlay() {
       ctx.restore();
     }
   }
+}
+
+// 이어하기 선택 모드 — 제거 불가(멜론/감자)에 X, 제거 가능에 빨간 펄스 + 남은 개수 표시
+function drawReviveOverlay() {
+  const pulse = 0.7 + Math.sin(performance.now() / 180) * 0.3;
+  for (const f of fruits) {
+    if (f.dead) continue;
+    if (f.tier > REVIVE_MAX_TIER) {
+      drawForbiddenX(f);
+    } else {
+      ctx.save();
+      ctx.strokeStyle = `rgba(255, 90, 90, ${0.55 * pulse})`;
+      ctx.lineWidth = Math.max(2, f.r * 0.05);
+      ctx.beginPath();
+      ctx.arc(f.x, f.y, f.r + 3, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+  // 남은 선택 수 HUD
+  ctx.save();
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  ctx.font = 'bold 24px "Jua", sans-serif';
+  ctx.fillStyle = '#ff5252';
+  ctx.strokeStyle = 'rgba(0,0,0,0.75)';
+  ctx.lineWidth = 5;
+  const txt = `${reviveRemaining}개 더 선택`;
+  ctx.strokeText(txt, W / 2, LINE_Y + 20);
+  ctx.fillText(txt, W / 2, LINE_Y + 20);
+  ctx.restore();
 }
 
 // 떨어질 위치에 희미한 원 그림자 표시 (점선 없음)
@@ -2587,9 +2720,10 @@ function loop(now) {
   for (const f of fruits) drawFruit(f);
   drawParticles();
   drawPops();
-  if (knifeMode) drawKnifeOverlay(); // 칼 모드: 제거 불가 과일에 X
+  if (potionMode) drawPotionOverlay();
+  else if (reviveMode) drawReviveOverlay();
   drawDropShadow();
-  if (!knifeMode) drawPreview();
+  if (!potionMode && !reviveMode) drawPreview();
   drawPopups();
 
   ctx.restore();
