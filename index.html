@@ -435,12 +435,12 @@ const TIERS = [
   { name: '포도',     color: '#7B1FA2', r: 28,  face: 'wink-r' },                          // 3단계: 보라
   { name: '귤',       color: '#FB8C00', r: 37,  face: 'blush'  },                          // 4단계: 주황
   { name: '감',       color: '#C2185B', r: 47,  face: 'happy'  },                          // 5단계: 딥 라즈베리
-  { name: '사과',     color: '#43A047', r: 58,  face: 'cat'    },                          // 초록 (청사과)
-  { name: '배',       color: '#DCE775', color2: '#F9A825', r: 70,  face: 'tongue' },       // 연두→골드 (배 느낌)
-  { name: '복숭아',   color: '#FF7043', color2: '#FDD835', r: 82,  face: 'blush'  },       // 산호→노랑 (석양)
-  { name: '파인애플', color: '#FFD54F', color2: '#E65100', r: 94,  face: 'smug'   },       // 노랑→진주황
-  { name: '멜론',     color: '#9CCC65', color2: '#F06292', r: 106, face: 'wink-l' },       // 연두→핫핑크
-  { name: '감자',     color: '#8D6E63', color2: '#EF6C00', r: 118, face: 'stoic'  },       // 갈색→주황
+  { name: '사과',     color: '#43A047', r: 55,  face: 'cat'    },                          // 초록 (청사과) [5%↓]
+  { name: '배',       color: '#DCE775', color2: '#F9A825', r: 67,  face: 'tongue' },       // 연두→골드 [5%↓]
+  { name: '복숭아',   color: '#FF7043', color2: '#FDD835', r: 78,  face: 'blush'  },       // 산호→노랑 [5%↓]
+  { name: '파인애플', color: '#FFD54F', color2: '#E65100', r: 89,  face: 'smug'   },       // 노랑→진주황 [5%↓]
+  { name: '멜론',     color: '#9CCC65', color2: '#F06292', r: 101, face: 'wink-l' },       // 연두→핫핑크 [5%↓]
+  { name: '감자',     color: '#8D6E63', color2: '#EF6C00', r: 112, face: 'stoic'  },       // 갈색→주황 [5%↓]
 ];
 
 // ============ 캔버스 / 렌더링 셋업 ============
@@ -463,7 +463,7 @@ function resize() {
   canvas.width = Math.floor(W * DPR);
   canvas.height = Math.floor(H * DPR);
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-  LINE_Y = Math.max(100, Math.min(H * 0.2, 180));
+  LINE_Y = Math.max(90, Math.min(H * 0.18, 160));
 }
 window.addEventListener('resize', resize);
 window.addEventListener('orientationchange', resize);
@@ -639,15 +639,13 @@ function physicsStep(dt) {
               fruits.push(nf);
               unlockTier(resultTier);
               registerCombo();
-              const basePts = mergeScore(resultTier);
-              const pts = Math.round(basePts * comboMultiplier());
-              addScore(pts);
+              // 보드 점수 변화량 계산 (이득분만 popup 표시)
+              const delta = (TIER_POINTS[resultTier] || 0) - 2 * (TIER_POINTS[tIdx] || 0);
               stats.mergeCount++;
               stats.maxCombo = Math.max(stats.maxCombo, comboCount);
               stats.maxTier = Math.max(stats.maxTier, resultTier);
               playMergeSfx(tIdx);
-              applyMergeFx(mx, my, resultTier, pts);
-              checkRecord();
+              applyMergeFx(mx, my, resultTier, delta);
               if (resultTier === TIERS.length - 1) {
                 triggerAchievement('🥔 전설의 감자!');
                 triggerFlash(0.5);
@@ -655,21 +653,19 @@ function physicsStep(dt) {
                 triggerSlowMo(0.4, 0.3);
               }
             } else {
+              // 감자 + 감자 = 보너스 (기존 룰 유지, 점수 고정)
               registerCombo();
-              const pts = Math.round(500 * comboMultiplier());
-              addScore(pts);
               stats.mergeCount++;
               stats.maxCombo = Math.max(stats.maxCombo, comboCount);
               spawnPop(mx, my, TIERS[tIdx].color, TIERS[tIdx].r * 1.6);
               spawnBurst(mx, my, TIERS[tIdx].color, 60);
               spawnStreaks(mx, my, '#ffde59', 16);
-              spawnScorePopup(mx, my - TIERS[tIdx].r * 0.5, '+' + pts + ' BONUS!', true);
+              spawnScorePopup(mx, my - TIERS[tIdx].r * 0.5, '🎉 BONUS!', true);
               playMergeSfx(tIdx);
               haptic('big');
               triggerShake(15, 0.5);
               triggerSlowMo(0.35, 0.35);
               triggerFlash(0.6);
-              checkRecord();
               triggerAchievement('✨ 감자 콤보!');
             }
           }
@@ -715,14 +711,24 @@ function unlockTier(t) {
   }
 }
 
+// 등급별 점수 (보드 기반 스코어링)
+const TIER_POINTS = [10, 30, 70, 150, 350, 800, 2000, 5000, 12000, 30000, 100000];
+function calcBoardScore() {
+  let total = 0;
+  for (const f of fruits) {
+    if (!f.dead) total += TIER_POINTS[f.tier] || 0;
+  }
+  return total;
+}
+
 function randomSpawnTier() {
-  // 점수에 따른 동적 가중치 (5000점 만점 기준 선형 증가)
-  // progress 0:  체리 60 / 딸기 32 / 포도 6  / 귤 2
-  // progress 1:  체리 30 / 딸기 28 / 포도 27 / 귤 15
-  const progress = Math.min(1, score / 5000);
-  const pCherry     = 0.60 - 0.30 * progress;
-  const pStrawberry = 0.32 - 0.04 * progress;
-  const pGrape      = 0.06 + 0.21 * progress;
+  // 점수 기반 동적 가중치 (보드 기반 점수로 변경돼서 임계값 더 큼)
+  // progress 0:  체리 63 / 딸기 32 / 포도 4  / 귤 1
+  // progress 1:  체리 45 / 딸기 30 / 포도 15 / 귤 10
+  const progress = Math.min(1, score / 30000);
+  const pCherry     = 0.63 - 0.18 * progress;
+  const pStrawberry = 0.32 - 0.02 * progress;
+  const pGrape      = 0.04 + 0.11 * progress;
   const r = Math.random();
   if (r < pCherry) return 0;
   if (r < pCherry + pStrawberry) return 1;
@@ -767,13 +773,21 @@ function applyMergeFx(mx, my, resultTier, pts) {
   }
 }
 
-function addScore(pts) {
-  score += pts;
-  // 표시 점수는 tickDisplayScore가 프레임마다 부드럽게 반영
+// 세션 시작 시점의 최고점 (넘으면 1회만 배너)
+let sessionStartBest = best;
+let recordBannerShown = false;
+
+// 보드 상태 기반으로 score 재계산 (매 프레임 호출)
+function refreshScore() {
+  score = calcBoardScore();
   if (score > best) {
     best = score;
     safeStorage.set('suika_best', String(best));
     document.getElementById('best').textContent = best.toLocaleString();
+  }
+  if (!recordBannerShown && sessionStartBest > 0 && score > sessionStartBest) {
+    recordBannerShown = true;
+    triggerAchievement('🏆 최고 점수 갱신!');
   }
 }
 document.getElementById('best').textContent = best.toLocaleString();
@@ -814,7 +828,13 @@ function onMove(e) {
   const x = getEventX(e);
   if (x != null) previewX = x;
 }
+let _lastDownTime = 0;
 function onDown(e) {
+  // 같은 탭이 touchstart/mousedown/pointerdown 여러번 트리거되는 거 방지
+  const now = Date.now();
+  if (now - _lastDownTime < 80) return;
+  _lastDownTime = now;
+
   if (e.target && e.target.closest && (
     e.target.closest('.btn') ||
     e.target.closest('.revive-btn') ||
@@ -833,14 +853,13 @@ function onDown(e) {
   const x = getEventX(e);
   const y = getEventY(e);
 
-  // 칼 모드 — 과일 제거 or 취소
-  if (knifeMode && inventory.knife > 0) {
+  // 칼 모드 — 과일 제거 or 취소 (절대 드롭 X)
+  if (knifeMode) {
     if (x != null && y != null) {
       const f = findFruitAt(x, y);
-      if (f) {
+      if (f && inventory.knife > 0) {
         useKnifeOn(f);
       } else {
-        // 빈 공간 탭 → 모드 취소
         knifeMode = false;
         updateKnifeSlot();
       }
@@ -1059,19 +1078,15 @@ async function onReviveTap() {
   }
 }
 function reviveAfterAd() {
-  // 상단 3개 제거 (라인 넘은 것 우선)
-  const alive = fruits.filter(f => !f.dead);
-  const sorted = alive.sort((a, b) => {
-    const aOver = a.overLineAt ? 1 : 0;
-    const bOver = b.overLineAt ? 1 : 0;
-    if (aOver !== bOver) return bOver - aOver;
-    return a.y - b.y; // Y 작은(위) 순
-  });
-  const targets = sorted.slice(0, 3);
-  for (const f of targets) {
-    spawnBurst(f.x, f.y, TIERS[f.tier].color, 20);
-    spawnPop(f.x, f.y, TIERS[f.tier].color, f.r);
-    f.dead = true;
+  // 캔버스 상단 1/5 영역 과일 전부 제거 (과일 중심이 해당 영역에 있으면)
+  const zoneBottom = H / 5;
+  for (const f of fruits) {
+    if (f.dead) continue;
+    if (f.y < zoneBottom) {
+      spawnBurst(f.x, f.y, TIERS[f.tier].color, 18);
+      spawnPop(f.x, f.y, TIERS[f.tier].color, f.r);
+      f.dead = true;
+    }
   }
   // 남은 과일의 overLineAt 리셋
   for (const f of fruits) { if (!f.dead) f.overLineAt = 0; }
@@ -1203,6 +1218,8 @@ document.getElementById('restartBtn').addEventListener('click', (e) => {
   lastMergeTime = 0;
   score = 0;
   displayScore = 0;
+  sessionStartBest = best;
+  recordBannerShown = false;
   resetStats();
   resetItems();
   document.getElementById('score').textContent = '0';
@@ -2052,11 +2069,14 @@ function roundRect(c, x, y, w, h, r) {
 
 // ============ 신기록 체크 ============
 let recordAnnouncedAt = 0;
+let lastBestCheck = 0;
 function checkRecord() {
-  if (score > best && performance.now() - recordAnnouncedAt > 2500) {
+  // refreshScore 안에서 자동 best 갱신되므로, 배너는 과거 기록 넘어갈 때만 한 번
+  if (score > lastBestCheck && score >= best && performance.now() - recordAnnouncedAt > 2500) {
     recordAnnouncedAt = performance.now();
     triggerAchievement('🏆 최고 점수 갱신!');
   }
+  lastBestCheck = score;
 }
 
 // ============ 점수 틱업 ============
@@ -2552,7 +2572,8 @@ function loop(now) {
   updatePopups(dt);
   updateAchievement(dt);
   updateEffects(dt);
-  tickDisplayScore();
+  refreshScore();     // 보드 상태로 score 재계산
+  tickDisplayScore(); // 표시용 점수 부드럽게 보간
 
   ctx.clearRect(0, 0, W, H);
 
