@@ -157,11 +157,13 @@
   .revive-btn {
     background: linear-gradient(180deg, #4a90e2 0%, #2a6fbf 100%);
     border: 3px solid #1a4a80; color: #fff;
-    padding: 12px 24px; border-radius: 24px;
-    font-family: 'Jua', sans-serif; font-size: 16px; font-weight: 700;
+    padding: 10px 22px; border-radius: 22px;
+    font-family: 'Jua', sans-serif; font-weight: 700;
     cursor: pointer; box-shadow: 0 4px 0 #1a4a80;
-    display: flex; align-items: center; gap: 8px;
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
   }
+  .revive-btn .revive-main { font-size: 16px; line-height: 1; }
+  .revive-btn .revive-sub { font-size: 11px; opacity: 0.85; font-weight: 400; line-height: 1; }
   .revive-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #1a4a80; }
   .revive-btn:disabled { opacity: 0.4; cursor: not-allowed; }
   .toast {
@@ -358,7 +360,10 @@
       <div class="stats-row"><span class="k">🏆 최고 과일</span><span class="v" id="statTier">-</span></div>
       <div class="stats-row"><span class="k">⏱️ 플레이 시간</span><span class="v" id="statTime">0초</span></div>
     </div>
-    <button class="revive-btn" id="reviveBtn">📺 광고 보고 이어하기</button>
+    <button class="revive-btn" id="reviveBtn">
+      <span class="revive-main">📺 광고 보고 이어하기</span>
+      <span class="revive-sub">선택한 과일 3개 제거 후 계속</span>
+    </button>
     <button class="btn" id="restartBtn">다시 도전</button>
   </div>
 
@@ -448,7 +453,7 @@ let potionAvailable = true;   // 이번 판에 아직 구매 가능?
 let potionMode = false;       // 사용 모드 (과일 탭 대기)
 let reviveUsed = false;       // 이번 판에 이어하기 썼는지
 let reviveMode = false;       // 이어하기 3개 선택 중
-let reviveRemaining = 0;      // 남은 선택 횟수
+let reviveSelections = [];    // 선택된 과일 배열 (토글 방식)
 
 function resetItems() {
   inventory.potion = 0;
@@ -456,7 +461,7 @@ function resetItems() {
   potionMode = false;
   reviveUsed = false;
   reviveMode = false;
-  reviveRemaining = 0;
+  reviveSelections.length = 0;
 }
 
 // 스크립트 시작 확인용
@@ -1163,9 +1168,8 @@ async function onReviveTap() {
 function reviveAfterAd() {
   reviveUsed = true;
   reviveMode = true;
-  reviveRemaining = 3;
+  reviveSelections = [];
   gameOver = false;
-  // 기존 라인 오버 타이머 전부 리셋 (즉시 재게임오버 방지)
   for (const f of fruits) { f.overLineAt = 0; }
   document.getElementById('overlay').classList.remove('show');
   document.getElementById('reviveBtn').style.display = 'none';
@@ -1179,24 +1183,39 @@ function applyReviveSelection(f) {
     haptic('merge');
     return false;
   }
-  spawnBurst(f.x, f.y, TIERS[f.tier].color, 20);
-  spawnPop(f.x, f.y, TIERS[f.tier].color, f.r);
-  f.dead = true;
-  reviveRemaining--;
+  const idx = reviveSelections.indexOf(f);
+  if (idx >= 0) {
+    // 이미 선택된 과일 → 선택 취소
+    reviveSelections.splice(idx, 1);
+    haptic('merge');
+    // 짧은 토스트로 피드백
+    showToast(`선택 취소 (${reviveSelections.length}/3)`, 700);
+    return true;
+  }
+  // 새 선택
+  reviveSelections.push(f);
   haptic('merge');
-  if (reviveRemaining > 0) {
-    const aliveCount = fruits.filter(x => !x.dead).length;
-    if (aliveCount === 0) finishRevive();
-    else showToast(`${reviveRemaining}개 더 선택`, 900);
+  if (reviveSelections.length >= 3) {
+    // 3개 채워지면 잠깐 후 일괄 제거
+    setTimeout(() => {
+      if (!reviveMode) return;
+      for (const sf of reviveSelections) {
+        if (sf.dead) continue;
+        spawnBurst(sf.x, sf.y, TIERS[sf.tier].color, 20);
+        spawnPop(sf.x, sf.y, TIERS[sf.tier].color, sf.r);
+        sf.dead = true;
+      }
+      finishRevive();
+    }, 350);
   } else {
-    finishRevive();
+    showToast(`${reviveSelections.length}/3 선택`, 700);
   }
   return true;
 }
 
 function finishRevive() {
   reviveMode = false;
-  reviveRemaining = 0;
+  reviveSelections.length = 0;
   for (const f of fruits) { if (!f.dead) f.overLineAt = 0; }
   triggerFlash(0.4);
   triggerShake(6, 0.3);
@@ -2799,14 +2818,49 @@ function drawPotionOverlay() {
   }
 }
 
-// 이어하기 선택 모드 — 제거 불가(멜론/감자)에 X, 제거 가능에 빨간 펄스 + 남은 개수 표시
+// 이어하기 선택 모드 — 선택됨/선택가능/불가 3가지 상태로 구분
 function drawReviveOverlay() {
   const pulse = 0.7 + Math.sin(performance.now() / 180) * 0.3;
   for (const f of fruits) {
     if (f.dead) continue;
+    const isSelected = reviveSelections.indexOf(f) >= 0;
     if (f.tier > REVIVE_MAX_TIER) {
       drawForbiddenX(f);
+    } else if (isSelected) {
+      // 선택됨 — 녹색 더 강한 펄스 + 체크 배지
+      ctx.save();
+      // 녹색 글로우 링
+      ctx.strokeStyle = `rgba(50, 220, 80, ${0.75 + pulse * 0.2})`;
+      ctx.lineWidth = Math.max(4, f.r * 0.09);
+      ctx.shadowColor = '#43ff80';
+      ctx.shadowBlur = 15;
+      ctx.beginPath();
+      ctx.arc(f.x, f.y, f.r + 5, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+      // 체크 배지 (우상단)
+      const cx = f.x + f.r * 0.65;
+      const cy = f.y - f.r * 0.65;
+      const cr = Math.max(11, f.r * 0.3);
+      ctx.fillStyle = '#43a047';
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.arc(cx, cy, cr, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      // 체크 (✓)
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = Math.max(2.5, cr * 0.22);
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(cx - cr * 0.4, cy + cr * 0.05);
+      ctx.lineTo(cx - cr * 0.1, cy + cr * 0.4);
+      ctx.lineTo(cx + cr * 0.5, cy - cr * 0.35);
+      ctx.stroke();
+      ctx.restore();
     } else {
+      // 선택 가능 — 빨간 펄스
       ctx.save();
       ctx.strokeStyle = `rgba(255, 90, 90, ${0.55 * pulse})`;
       ctx.lineWidth = Math.max(2, f.r * 0.05);
@@ -2816,17 +2870,24 @@ function drawReviveOverlay() {
       ctx.restore();
     }
   }
-  // 남은 선택 수 HUD
+  // 상단 HUD: 현재 선택 수 / 안내
   ctx.save();
   ctx.textAlign = 'center';
   ctx.textBaseline = 'top';
-  ctx.font = 'bold 24px "Jua", sans-serif';
-  ctx.fillStyle = '#ff5252';
-  ctx.strokeStyle = 'rgba(0,0,0,0.75)';
+  ctx.font = 'bold 22px "Jua", sans-serif';
+  const txt = `${reviveSelections.length}/3 선택`;
   ctx.lineWidth = 5;
-  const txt = `${reviveRemaining}개 더 선택`;
+  ctx.strokeStyle = 'rgba(0,0,0,0.8)';
+  ctx.fillStyle = reviveSelections.length === 3 ? '#43ff80' : '#ffde59';
   ctx.strokeText(txt, W / 2, LINE_Y + 20);
   ctx.fillText(txt, W / 2, LINE_Y + 20);
+  // 보조 설명
+  ctx.font = '14px "Jua", sans-serif';
+  ctx.lineWidth = 3.5;
+  ctx.fillStyle = '#fff';
+  const subTxt = reviveSelections.length === 3 ? '제거 진행 중...' : '다시 탭하면 선택 취소';
+  ctx.strokeText(subTxt, W / 2, LINE_Y + 50);
+  ctx.fillText(subTxt, W / 2, LINE_Y + 50);
   ctx.restore();
 }
 
