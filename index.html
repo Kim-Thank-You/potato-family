@@ -13,30 +13,69 @@
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
-  html, body {
-    margin: 0; padding: 0; width: 100vw; height: 100vh; height: 100dvh;
-    overflow: hidden; background: #000;
+
+  /* ═══ Telegram safe-area + chrome 변수 ═══ */
+  :root {
+    --tg-chrome-top: 0px;
+    --tg-chrome-left: 0px;
+    --tg-chrome-right: 0px;
+    --tg-chrome-bottom: 0px;
+    --safe-top: max(env(safe-area-inset-top, 0px), var(--tg-chrome-top), 8px);
+    --safe-left: max(env(safe-area-inset-left, 0px), var(--tg-chrome-left), 0px);
+    --safe-right: max(env(safe-area-inset-right, 0px), var(--tg-chrome-right), 0px);
+    --safe-bottom: max(env(safe-area-inset-bottom, 0px), var(--tg-chrome-bottom), 0px);
+    color-scheme: dark;
+  }
+
+  /* ═══ Telegram iOS swipe-to-minimize 방어: 1px Buffer 트릭 ═══
+     원리: html을 1px만 스크롤 가능하게 하면 Telegram이 "스크롤 중"으로 인식 → 앱 최소화 제스처 무시
+     - overflow-y:auto + min-height 101vh 로 1px buffer
+     - JS에서 window.scrollTo(0,1) 로 초기 1px 유지
+     - scroll 이벤트에서 0으로 가면 다시 1로 복귀 */
+  html {
+    width: 100%; height: 100%;
+    overflow-y: auto; overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    -webkit-user-select: none; user-select: none;
+    overscroll-behavior-y: none;
+    background: #000;
+  }
+  body {
+    margin: 0; padding: 0; width: 100%;
+    min-height: 101vh;
+    min-height: calc(var(--tg-viewport-stable-height, 100dvh) + 1px);
+    overflow-x: hidden;
+    background: #000;
     font-family: 'Jua', 'Malgun Gothic', -apple-system, BlinkMacSystemFont, sans-serif;
-    color: #fff; touch-action: none;
+    color: #fff;
+    touch-action: none;
+    -webkit-user-select: none; user-select: none;
   }
   .title-font { font-family: 'Do Hyeon', 'Jua', sans-serif; }
   #wrap {
-    position: relative;
-    width: 100vw;
-    height: 100vh;
+    position: fixed;
+    inset: 0;
+    width: 100%;
     height: 100dvh;
+    height: var(--tg-viewport-stable-height, 100dvh);
     background: linear-gradient(180deg, #2a5f6b 0%, #4a8a76 55%, #6fb27a 100%);
     overflow: hidden; cursor: pointer;
+    padding-top: var(--safe-top);
+    padding-left: var(--safe-left);
+    padding-right: var(--safe-right);
+    padding-bottom: var(--safe-bottom);
+    z-index: 1;
   }
   /* PC 미리보기 (큰 화면)에서만 모바일 프레임 */
   @media (min-width: 500px) {
-    body { display: flex; align-items: center; justify-content: center; }
+    body { display: flex; align-items: center; justify-content: center; min-height: 100dvh; }
     #wrap {
-      width: min(420px, calc(100vh * 9 / 16));
-      height: min(747px, 100vh);
+      position: relative;
+      inset: auto;
       width: min(420px, calc(100dvh * 9 / 16));
       height: min(747px, 100dvh);
       border-radius: 28px;
+      padding: 0;
       box-shadow:
         0 20px 60px rgba(0,0,0,0.55),
         0 0 0 4px #111,
@@ -668,6 +707,116 @@
 
 <script>
 "use strict";
+
+// ═══════════════════════════════════════════════════════════
+// 🛡 Telegram Mini App iOS/Android 방어 장치 (감자팝과 동일)
+//   - 세로 스와이프 최소화 방지 (disableVerticalSwipes + 1px buffer)
+//   - 닫기 확인창 (enableClosingConfirmation)
+//   - viewportChanged → 즉시 재확장
+//   - safeArea / contentSafeArea → --tg-chrome-* 변수 동기화
+//   - 멀티터치 줌 차단
+//   - body 스크롤 차단 (게임 화면) + 로비 스크롤 영역 허용
+// ═══════════════════════════════════════════════════════════
+(function(){
+  if (!window.Telegram || !window.Telegram.WebApp) return;
+  const tg = window.Telegram.WebApp;
+  try { tg.ready(); } catch (e) {}
+  try { tg.expand(); } catch (e) {}
+  try { tg.disableVerticalSwipes && tg.disableVerticalSwipes(); } catch (e) {}
+  try { tg.enableClosingConfirmation && tg.enableClosingConfirmation(); } catch (e) {}
+  // ★ requestFullscreen 호출 안 함 — TG chrome 겹침 방지 (감자팝과 동일 정책)
+  try { tg.setBackgroundColor && tg.setBackgroundColor('#000000'); } catch (e) {}
+  try { tg.setHeaderColor && tg.setHeaderColor('#000000'); } catch (e) {}
+  if (tg.onEvent) {
+    tg.onEvent('viewportChanged', () => {
+      if (!tg.isExpanded) { try { tg.expand(); } catch (e) {} }
+      try { tg.disableVerticalSwipes && tg.disableVerticalSwipes(); } catch (e) {}
+      fixVH();
+      detectChrome();
+    });
+    tg.onEvent('safeAreaChanged', () => detectChrome());
+    tg.onEvent('contentSafeAreaChanged', () => detectChrome());
+  }
+  // 화면 전환마다 호출 (showScreen 안에서 활용)
+  window._tgSafeMode = () => {
+    try {
+      tg.disableVerticalSwipes && tg.disableVerticalSwipes();
+      tg.enableClosingConfirmation && tg.enableClosingConfirmation();
+      tg.expand && tg.expand();
+      detectChrome();
+    } catch (e) {}
+  };
+})();
+
+function fixVH() {
+  const tg = window.Telegram && window.Telegram.WebApp;
+  const h = (tg && (tg.viewportStableHeight || tg.viewportHeight)) || window.innerHeight;
+  document.documentElement.style.setProperty('--tg-viewport-stable-height', h + 'px');
+}
+
+function detectChrome() {
+  const tg = window.Telegram && window.Telegram.WebApp;
+  let top = 0, left = 0, right = 0, bottom = 0;
+  if (tg) {
+    const csai = tg.contentSafeAreaInset;
+    if (csai) {
+      if (typeof csai.top === 'number' && csai.top >= 0) top = csai.top;
+      if (typeof csai.left === 'number' && csai.left >= 0) left = csai.left;
+      if (typeof csai.right === 'number' && csai.right >= 0) right = csai.right;
+      if (typeof csai.bottom === 'number' && csai.bottom >= 0) bottom = csai.bottom;
+    }
+    const sai = tg.safeAreaInset;
+    if (sai) {
+      if (typeof sai.top === 'number' && sai.top > top) top = sai.top;
+      if (typeof sai.left === 'number' && sai.left > left) left = sai.left;
+      if (typeof sai.right === 'number' && sai.right > right) right = sai.right;
+      if (typeof sai.bottom === 'number' && sai.bottom > bottom) bottom = sai.bottom;
+    }
+  }
+  // 안전 상한 (과도값 방어)
+  if (top > 120) top = 120;
+  if (left > 60) left = 60;
+  if (right > 60) right = 60;
+  if (bottom > 60) bottom = 60;
+  const root = document.documentElement.style;
+  root.setProperty('--tg-chrome-top', top + 'px');
+  root.setProperty('--tg-chrome-left', left + 'px');
+  root.setProperty('--tg-chrome-right', right + 'px');
+  root.setProperty('--tg-chrome-bottom', bottom + 'px');
+}
+
+// ═══ 1px Scroll Buffer 트릭 ═══
+window.addEventListener('scroll', () => {
+  if (window.scrollY === 0) window.scrollTo(0, 1);
+}, { passive: true });
+function _setScrollBuffer() { window.scrollTo(0, 1); }
+window.addEventListener('load', _setScrollBuffer);
+window.addEventListener('resize', () => { _setScrollBuffer(); fixVH(); });
+window.addEventListener('orientationchange', () => setTimeout(() => { _setScrollBuffer(); fixVH(); }, 300));
+
+// ═══ 멀티터치 줌 차단 ═══
+document.addEventListener('touchstart', (e) => {
+  if (e.touches && e.touches.length > 1) e.preventDefault();
+}, { passive: false });
+
+// ═══ body 스크롤 차단 — 게임 화면에선 캔버스/아이템바만 허용, 로비/결과는 스크롤 영역만 허용 ═══
+document.addEventListener('touchmove', (e) => {
+  if (!e.target || typeof e.target.closest !== 'function') return;
+  const lobbyOn = document.getElementById('s-lobby')?.classList.contains('active');
+  const resultOn = document.getElementById('s-result')?.classList.contains('active');
+  if (lobbyOn) {
+    if (!e.target.closest('.lobby-scroll')) e.preventDefault();
+  } else if (resultOn) {
+    if (!e.target.closest('.result-inner')) e.preventDefault();
+  } else {
+    // s-play (게임 진행 중): 캔버스 / 아이템바 / 휴지통 슬롯 외 차단
+    if (!e.target.closest('#wrap, #itemBar, #tutorial, #dexOverlay, .toast')) e.preventDefault();
+  }
+}, { passive: false });
+
+// 초기 viewport 측정
+fixVH();
+detectChrome();
 
 // 전역 에러 표시 (원인 파악용)
 window.addEventListener('error', (ev) => {
@@ -1793,14 +1942,12 @@ document.getElementById('restartBtn').addEventListener('click', (e) => {
 // ============================================================
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  if (id === 's-play') return; // s-play 는 #wrap 그 자체 — 오버레이만 내림
-  const el = document.getElementById(id);
-  if (el) el.classList.add('active');
-  // Telegram WebApp 확장 유지
-  try {
-    const tg = window.Telegram && window.Telegram.WebApp;
-    if (tg) { if (!tg.isExpanded) tg.expand && tg.expand(); tg.disableVerticalSwipes && tg.disableVerticalSwipes(); }
-  } catch (e) {}
+  if (id !== 's-play') {
+    const el = document.getElementById(id);
+    if (el) el.classList.add('active');
+  }
+  // Telegram 방어 재적용 — 화면 전환 시마다 swipe/expand/closeConfirm 갱신
+  try { window._tgSafeMode && window._tgSafeMode(); } catch (e) {}
 }
 
 function updateLobbyStats() {
