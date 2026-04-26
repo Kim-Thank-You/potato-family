@@ -1427,7 +1427,7 @@ window.ParentBridge = window.ParentBridge || {
 window.__gameSession = { id: null, gameId: 'potato_family', startedAt: 0 };
 
 // ============ 아이템 상수/상태 ============
-const POTION_PRICE = 2;       // 다이아 가격
+const POTION_PRICE = 0;       // 무료 (2026-04-24 변경 · 판당 1회)
 const POTION_MAX_TIER = 6;    // 인덱스 6 = 사과. 0~6 진화 가능 → 최대 결과 배(7)
 const REVIVE_MAX_TIER = 7;    // 복숭아 이하 제거 가능. 파인애플/멜론/감자 불가
 const inventory = { potion: 0 };
@@ -1603,48 +1603,54 @@ function physicsStep(dt) {
         const dy = b.y - a.y;
         const minD = a.r + b.r;
         const d2 = dx*dx + dy*dy;
-        if (d2 >= minD*minD) continue;
+        // 합체 판정은 살짝 여유(2%) — 정지 데드락 방지. 충돌 분리/임펄스는 실제 겹친 경우만.
+        const mergeMinD = minD * 1.02;
+        if (d2 >= mergeMinD*mergeMinD) continue;
         let d = Math.sqrt(d2);
         let nx, ny;
         if (d < 0.0001) { nx = 0; ny = -1; d = 0.0001; }
         else { nx = dx / d; ny = dy / d; }
-        const overlap = minD - d;
 
-        // 위치 분리 (질량 가중: 가벼운 쪽이 더 많이 밀림)
-        const invSum = a.invMass + b.invMass;
-        const aShare = a.invMass / invSum;
-        const bShare = b.invMass / invSum;
-        a.x -= nx * overlap * aShare;
-        a.y -= ny * overlap * aShare;
-        b.x += nx * overlap * bShare;
-        b.y += ny * overlap * bShare;
+        if (d < minD) {
+          const overlap = minD - d;
+          // 위치 분리 (질량 가중: 가벼운 쪽이 더 많이 밀림)
+          const invSum = a.invMass + b.invMass;
+          const aShare = a.invMass / invSum;
+          const bShare = b.invMass / invSum;
+          a.x -= nx * overlap * aShare;
+          a.y -= ny * overlap * aShare;
+          b.x += nx * overlap * bShare;
+          b.y += ny * overlap * bShare;
+
+          if (p === 0) {
+            // 속도 반응 (질량 가중)
+            const rvx = b.vx - a.vx;
+            const rvy = b.vy - a.vy;
+            const vn = rvx * nx + rvy * ny;
+            // 착지 감지: a가 위에서 b 위로 떨어짐 (ny > 0.5 = b가 a 아래) OR b가 a 아래서 튕겨 올림
+            if (vn < -220) {
+              if (ny > 0.55) a.squashTime = 1;
+              if (ny < -0.55) b.squashTime = 1;
+            }
+            if (vn < 0) {
+              // 노말 방향 임펄스 (충돌 반발)
+              const jimp = -(1 + RESTITUTION) * vn / invSum;
+              a.vx -= jimp * a.invMass * nx; a.vy -= jimp * a.invMass * ny;
+              b.vx += jimp * b.invMass * nx; b.vy += jimp * b.invMass * ny;
+              // 탄젠셜 방향 마찰 (미끄러짐 방지)
+              const tx = -ny, ty = nx;
+              const vt = rvx * tx + rvy * ty;
+              const jfric = -vt * CONTACT_FRICTION / invSum;
+              a.vx -= jfric * a.invMass * tx; a.vy -= jfric * a.invMass * ty;
+              b.vx += jfric * b.invMass * tx; b.vy += jfric * b.invMass * ty;
+              // 회전 유발 (작은 과일일수록 많이 돌아감)
+              a.va -= vt * a.invMass * 0.03;
+              b.va += vt * b.invMass * 0.03;
+            }
+          }
+        }
 
         if (p === 0) {
-          // 속도 반응 (질량 가중)
-          const rvx = b.vx - a.vx;
-          const rvy = b.vy - a.vy;
-          const vn = rvx * nx + rvy * ny;
-          // 착지 감지: a가 위에서 b 위로 떨어짐 (ny > 0.5 = b가 a 아래) OR b가 a 아래서 튕겨 올림
-          if (vn < -220) {
-            if (ny > 0.55) a.squashTime = 1;
-            if (ny < -0.55) b.squashTime = 1;
-          }
-          if (vn < 0) {
-            // 노말 방향 임펄스 (충돌 반발)
-            const jimp = -(1 + RESTITUTION) * vn / invSum;
-            a.vx -= jimp * a.invMass * nx; a.vy -= jimp * a.invMass * ny;
-            b.vx += jimp * b.invMass * nx; b.vy += jimp * b.invMass * ny;
-            // 탄젠셜 방향 마찰 (미끄러짐 방지)
-            const tx = -ny, ty = nx;
-            const vt = rvx * tx + rvy * ty;
-            const jfric = -vt * CONTACT_FRICTION / invSum;
-            a.vx -= jfric * a.invMass * tx; a.vy -= jfric * a.invMass * ty;
-            b.vx += jfric * b.invMass * tx; b.vy += jfric * b.invMass * ty;
-            // 회전 유발 (작은 과일일수록 많이 돌아감)
-            a.va -= vt * a.invMass * 0.03;
-            b.va += vt * b.invMass * 0.03;
-          }
-
           // 합체 체크
           if (a.tier === b.tier && !a.merged && !b.merged) {
             a.merged = b.merged = true;
@@ -1808,54 +1814,19 @@ function unlockTier(t) {
   }
 }
 
-// ============ 업적 보상 훅 ============
-const ACH_DEFS = [
-  { id: 'score_1k',   bit: 1,   name: '첫 1K 돌파',  coin: 15,  diamond: 0, kind: 'score',  need: 1000 },
-  { id: 'score_3k',   bit: 2,   name: '3K 달성',     coin: 35,  diamond: 0, kind: 'score',  need: 3000 },
-  { id: 'score_5k',   bit: 4,   name: '5K 마스터',   coin: 70,  diamond: 1, kind: 'score',  need: 5000 },
-  { id: 'score_8k',   bit: 8,   name: '8K 신화',     coin: 140, diamond: 2, kind: 'score',  need: 8000 },
-  { id: 'combo_5',    bit: 16,  name: '콤보 ×5',     coin: 20,  diamond: 0, kind: 'combo',  need: 5 },
-  { id: 'combo_8',    bit: 32,  name: '콤보 ×8',     coin: 50,  diamond: 1, kind: 'combo',  need: 8 },
-  { id: 'potato_3',   bit: 64,  name: '감자 3회 제작', coin: 80,  diamond: 1, kind: 'potato', need: 3 },
-  { id: 'potato_10',  bit: 128, name: '감자 10회 제작',coin: 200, diamond: 3, kind: 'potato', need: 10 },
-  { id: 'merges_100', bit: 256, name: '합성 100회',  coin: 40,  diamond: 0, kind: 'merges', need: 100 },
-];
-function _achMask() { return parseInt(safeStorage.get('suika_ach_mask') || '0', 10) | 0; }
-function _saveAchMask(m) {
-  safeStorage.set('suika_ach_mask', String(m));
-  try { window.ParentBridge.cloudSet('suika_ach_mask', String(m)); } catch (e) {}
-}
+// ============ 업적 보상 훅 (2026-04-24 삭제, 2026-04-25 스냅샷 동기화) ============
+// 업적 시스템 전체 비활성화 — call site 호환성 유지 차원에서 no-op 함수만 유지
+const ACH_DEFS = [];
+function _achMask() { return 0; }
+function _saveAchMask(_m) { /* no-op */ }
 function _totalMerges() { return parseInt(safeStorage.get('suika_total_merges') || '0', 10) | 0; }
 function _addMerge() {
   const n = _totalMerges() + 1;
   safeStorage.set('suika_total_merges', String(n));
   return n;
 }
-function grantAchievement(def) {
-  const mask = _achMask();
-  if (mask & def.bit) return false;
-  _saveAchMask(mask | def.bit);
-  try {
-    if (def.coin) window.ParentBridge.earnCoin(def.coin, 'potato_family:ach_' + def.id);
-    if (def.diamond) window.ParentBridge.earnDiamond(def.diamond, 'potato_family:ach_' + def.id);
-  } catch (e) {}
-  const rewardTxt = (def.coin ? '+' + def.coin + ' 🥔' : '') +
-    (def.diamond ? (def.coin ? ' · ' : '') + '+' + def.diamond + ' 💎' : '');
-  try { triggerAchievement('🏆 ' + def.name); } catch (e) {}
-  try { showToast('🏆 ' + def.name + ' · ' + rewardTxt, 2000); } catch (e) {}
-  return true;
-}
-function checkAchievements(ctx) {
-  for (const d of ACH_DEFS) {
-    let val;
-    if (d.kind === 'score') val = ctx.score | 0;
-    else if (d.kind === 'combo') val = ctx.combo | 0;
-    else if (d.kind === 'potato') val = ctx.potatoCount | 0;
-    else if (d.kind === 'merges') val = ctx.totalMerges | 0;
-    else continue;
-    if (val >= d.need) grantAchievement(d);
-  }
-}
+function grantAchievement(_def) { return false; }
+function checkAchievements(_ctx) { /* no-op */ }
 function _achCtx() {
   return {
     score: (typeof score !== 'undefined' ? score : 0),
@@ -2536,7 +2507,7 @@ const REVIVE_AD_REMOVE = 5;  // 광고 보기: 과일 5개 제거
 const REVIVE_DIA_REMOVE = 3; // 다이아 3개: 과일 3개 제거
 let _gorTimer = null;
 let _gorDeadline = 0;
-const GOR_DURATION = 10000; // 10초 결정 시간
+const GOR_DURATION = 30000; // 30초 결정 시간 (2026-04-25 · 07_FRONTEND_API_INTEGRATION.md 문서 일치)
 
 function _hideGoRevive() {
   const el = document.getElementById('gameover-revive');
@@ -2613,6 +2584,11 @@ async function _goReviveByDiamond() {
   } catch (e) {
     showToast('결제 실패', 1200);
     if (ad) ad.disabled = false;
+    // 다이아 버튼도 원상 복구 — 일시적 오류면 재시도 가능해야 함
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<div class="gor-btn-col"><span>💎 다이아 <span id="gor-dia-price">' + REVIVE_DIAMOND_PRICE + '</span>개로 이어하기</span><span class="gor-btn-sub">과일 ' + REVIVE_DIA_REMOVE + '개 제거 후 계속</span></div>';
+    }
   }
 }
 
@@ -3503,6 +3479,47 @@ function drawFace(r, face) {
   }
 }
 
+// 과일 그라디언트 캐시 — ctx별로 분리 (메인 캔버스 / 도감 스프라이트 캔버스 공존)
+// 그라디언트 좌표는 fill 시점 user-space에서 평가되므로 translate 후 재사용 안전.
+function _fruitGrads(c, tier, r) {
+  if (!c._fruitGradCache) c._fruitGradCache = {};
+  const key = tier + ':' + r;
+  const hit = c._fruitGradCache[key];
+  if (hit) return hit;
+  const t = TIERS[tier];
+  const cache = {};
+  if (t.color2) {
+    const lin = c.createLinearGradient(0, -r, 0, r);
+    lin.addColorStop(0, shade(t.color, 0.25));
+    lin.addColorStop(0.5, t.color);
+    lin.addColorStop(1, t.color2);
+    cache.body = lin;
+  } else {
+    const grad = c.createRadialGradient(-r * 0.32, -r * 0.36, r * 0.05, 0, 0, r);
+    grad.addColorStop(0, shade(t.color, 0.55));
+    grad.addColorStop(0.5, t.color);
+    grad.addColorStop(1, shade(t.color, -0.32));
+    cache.body = grad;
+  }
+  const rim = c.createRadialGradient(0, 0, r * 0.72, 0, 0, r);
+  rim.addColorStop(0, 'rgba(0,0,0,0)');
+  rim.addColorStop(0.8, 'rgba(0,0,0,0.06)');
+  rim.addColorStop(1, 'rgba(0,0,0,0.38)');
+  cache.rim = rim;
+  const bot = c.createRadialGradient(r * 0.22, r * 0.52, 0, r * 0.22, r * 0.52, r * 0.55);
+  bot.addColorStop(0, 'rgba(255,255,255,0.28)');
+  bot.addColorStop(0.6, 'rgba(255,255,255,0.08)');
+  bot.addColorStop(1, 'rgba(255,255,255,0)');
+  cache.bot = bot;
+  const hi = c.createRadialGradient(-r * 0.3, -r * 0.4, 0, -r * 0.3, -r * 0.4, r * 0.72);
+  hi.addColorStop(0, 'rgba(255,255,255,0.85)');
+  hi.addColorStop(0.35, 'rgba(255,255,255,0.35)');
+  hi.addColorStop(1, 'rgba(255,255,255,0)');
+  cache.hi = hi;
+  c._fruitGradCache[key] = cache;
+  return cache;
+}
+
 function drawFruit(f, alpha) {
   const t = TIERS[f.tier];
   const r = f.r;
@@ -3520,50 +3537,25 @@ function drawFruit(f, alpha) {
     ctx.translate(0, r * (1 - squashY) * 0.5);
   }
 
+  const grads = _fruitGrads(ctx, f.tier, r);
+
   // === 본체 베이스 컬러 ===
-  if (t.color2) {
-    // 다색 (위→아래 선형)
-    const lin = ctx.createLinearGradient(0, -r, 0, r);
-    lin.addColorStop(0, shade(t.color, 0.25));
-    lin.addColorStop(0.5, t.color);
-    lin.addColorStop(1, t.color2);
-    ctx.fillStyle = lin;
-    ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
-  } else {
-    // 단일색 방사 (더 강한 대비)
-    const grad = ctx.createRadialGradient(-r * 0.32, -r * 0.36, r * 0.05, 0, 0, r);
-    grad.addColorStop(0, shade(t.color, 0.55));
-    grad.addColorStop(0.5, t.color);
-    grad.addColorStop(1, shade(t.color, -0.32));
-    ctx.fillStyle = grad;
-    ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
-  }
+  ctx.fillStyle = grads.body;
+  ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
 
   // === 강한 림 그림자 (가장자리 어둡게 → 3D 입체감) ===
-  const rim = ctx.createRadialGradient(0, 0, r * 0.72, 0, 0, r);
-  rim.addColorStop(0, 'rgba(0,0,0,0)');
-  rim.addColorStop(0.8, 'rgba(0,0,0,0.06)');
-  rim.addColorStop(1, 'rgba(0,0,0,0.38)');
-  ctx.fillStyle = rim;
+  ctx.fillStyle = grads.rim;
   ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
 
   // === 하단 반사광 (바닥에서 튕기는 빛) ===
-  const bot = ctx.createRadialGradient(r * 0.22, r * 0.52, 0, r * 0.22, r * 0.52, r * 0.55);
-  bot.addColorStop(0, 'rgba(255,255,255,0.28)');
-  bot.addColorStop(0.6, 'rgba(255,255,255,0.08)');
-  bot.addColorStop(1, 'rgba(255,255,255,0)');
-  ctx.fillStyle = bot;
+  ctx.fillStyle = grads.bot;
   ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
 
   // 과일 이름 (상단 장식 분기에서 사용)
   const n = t.name;
 
   // === 메인 하이라이트 (좌상단 큰 광택) ===
-  const hi = ctx.createRadialGradient(-r * 0.3, -r * 0.4, 0, -r * 0.3, -r * 0.4, r * 0.72);
-  hi.addColorStop(0, 'rgba(255,255,255,0.85)');
-  hi.addColorStop(0.35, 'rgba(255,255,255,0.35)');
-  hi.addColorStop(1, 'rgba(255,255,255,0)');
-  ctx.fillStyle = hi;
+  ctx.fillStyle = grads.hi;
   ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
 
   // === 작은 글린트 (강한 흰점 — 비닐감) ===
@@ -4147,9 +4139,10 @@ function drawAchievement() {
   ctx.strokeStyle = 'rgba(0,0,0,0.8)';
   // 배경 캡슐
   const txt = achievement.text;
-  const metrics = ctx.measureText(txt);
+  // 텍스트 폭은 라이프 동안 안 변함 — 첫 프레임에 한 번만 측정
+  if (achievement._w == null) achievement._w = ctx.measureText(txt).width;
   const pad = 18;
-  const w = metrics.width + pad * 2;
+  const w = achievement._w + pad * 2;
   const h = 52;
   const bgGrad = ctx.createLinearGradient(W/2 - w/2, y - h/2, W/2 + w/2, y + h/2);
   bgGrad.addColorStop(0, '#ff9e2c');
@@ -4890,17 +4883,17 @@ function drawReviveOverlay() {
   ctx.textAlign = 'center';
   ctx.textBaseline = 'top';
   ctx.font = 'bold 22px "Jua", sans-serif';
-  const txt = `${reviveSelections.length}/3 선택`;
+  const txt = `${reviveSelections.length}/${reviveTargetCount} 선택`;
   ctx.lineWidth = 5;
   ctx.strokeStyle = 'rgba(0,0,0,0.8)';
-  ctx.fillStyle = reviveSelections.length === 3 ? '#43ff80' : '#ffde59';
+  ctx.fillStyle = reviveSelections.length === reviveTargetCount ? '#43ff80' : '#ffde59';
   ctx.strokeText(txt, W / 2, LINE_Y + 20);
   ctx.fillText(txt, W / 2, LINE_Y + 20);
   // 보조 설명
   ctx.font = '14px "Jua", sans-serif';
   ctx.lineWidth = 3.5;
   ctx.fillStyle = '#fff';
-  const subTxt = reviveSelections.length === 3 ? '제거 진행 중...' : '다시 탭하면 선택 취소';
+  const subTxt = reviveSelections.length === reviveTargetCount ? '제거 진행 중...' : '다시 탭하면 선택 취소';
   ctx.strokeText(subTxt, W / 2, LINE_Y + 50);
   ctx.fillText(subTxt, W / 2, LINE_Y + 50);
   ctx.restore();
