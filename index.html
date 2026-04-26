@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
-<title>수박 합성</title>
+<title>포테이토 패밀리</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Jua&family=Do+Hyeon&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
@@ -353,28 +353,29 @@
     transition: width 0.3s;
   }
   .dex-grid {
-    display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px;
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 14px;
   }
   .dex-cell {
-    aspect-ratio: 1 / 1;
     border-radius: 12px;
-    display: flex; align-items: flex-end; justify-content: center;
-    padding-bottom: 4px;
+    display: flex; flex-direction: column; align-items: stretch;
+    padding: 6px 4px 8px;
     font-family: 'Jua', sans-serif;
-    font-weight: 700; font-size: 12px; color: #3a2000;
+    font-weight: 700; color: #3a2000;
     border: 2px solid #a87a20;
     box-shadow: inset -2px -3px 6px rgba(0,0,0,0.12);
     position: relative;
     background: #f5eac8;
     overflow: hidden;
   }
-  .dex-cell .dex-sprite {
-    position: absolute;
-    left: 7.5%; top: 7.5%;
-    width: 85%; height: 85%;
-    object-fit: contain;
-    z-index: 1;
+  .dex-cell .dex-sprite-wrap {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    display: flex; align-items: center; justify-content: center;
     pointer-events: none;
+  }
+  .dex-cell .dex-sprite {
+    width: 92%; height: 92%;
+    object-fit: contain;
   }
   .dex-cell.locked {
     background: #4a4a4a !important;
@@ -385,22 +386,22 @@
     filter: brightness(0) opacity(0.55);
   }
   .dex-cell.locked .tier-name {
-    color: rgba(255,255,255,0.65);
-    background: rgba(0,0,0,0.35);
+    color: rgba(255,255,255,0.7);
   }
   .dex-cell .tier-num {
     position: absolute; top: 3px; left: 5px;
-    font-size: 10px; opacity: 0.75; color: #6a4810;
-    background: rgba(255,255,255,0.5);
-    padding: 1px 4px; border-radius: 6px;
+    font-size: 10px; opacity: 0.85; color: #6a4810;
+    background: rgba(255,255,255,0.6);
+    padding: 1px 5px; border-radius: 6px;
     z-index: 2;
   }
   .dex-cell.locked .tier-num { color: rgba(255,255,255,0.7); background: rgba(0,0,0,0.4); }
   .dex-cell .tier-name {
-    position: relative; z-index: 2;
-    background: rgba(255,255,255,0.75);
-    padding: 1px 6px; border-radius: 8px;
-    font-size: 11px;
+    text-align: center;
+    margin-top: 4px;
+    font-size: 13px;
+    line-height: 1.2;
+    color: #3a2000;
   }
   .dex-close {
     display: block; margin: 0 auto;
@@ -421,14 +422,18 @@
     background: linear-gradient(180deg, #fff5d5 0%, #ffdc7a 100%);
     border: 4px solid #8a5a00;
     border-radius: 20px;
-    padding: 24px 28px;
-    max-width: 80%;
+    padding: 24px 24px;
+    max-width: 88%;
     box-shadow: 0 10px 30px rgba(0,0,0,0.4);
     text-align: center;
     color: #3a2000;
   }
-  .tutorial-card h2 { margin: 0 0 16px; font-size: 26px; color: #8a3a00; }
-  .tutorial-card p { margin: 10px 0; font-size: 15px; font-weight: 600; line-height: 1.5; }
+  .tutorial-card h2 { margin: 0 0 16px; font-size: 26px; color: #8a3a00; word-break: keep-all; }
+  .tutorial-card p {
+    margin: 10px 0; font-size: 15px; font-weight: 600; line-height: 1.55;
+    word-break: keep-all;        /* 한글 단어 중간 줄바꿈 방지 */
+    overflow-wrap: anywhere;     /* 너무 긴 토큰만 예외 처리 */
+  }
   .tutorial-card button {
     margin-top: 16px;
     background: linear-gradient(180deg, #ffcf4a 0%, #ff9e2c 100%);
@@ -486,6 +491,8 @@
   .tier-sub { font-size: 10px; color: rgba(255,255,255,.55); margin-top: 6px; line-height: 1.4; }
 
   /* Ad Card */
+  .ad-card.coming-soon { opacity: 0.6; }
+  .ad-card.coming-soon .tgl { pointer-events: none; }
   .ad-card { background: rgba(120,80,230,.28); border: 1px solid rgba(180,150,255,.45);
     border-radius: 18px; padding: 14px; text-align: center;
     box-shadow: inset 0 1px rgba(200,170,255,.2); flex-shrink: 0; }
@@ -906,10 +913,10 @@
 
   <div class="tutorial-overlay" id="tutorial">
     <div class="tutorial-card">
-      <h2>🍉 수박 합성</h2>
+      <h2>🥔 포테이토 패밀리</h2>
       <p>👆 화면을 탭해서 과일을 떨어뜨려요</p>
-      <p>🍒 같은 과일 2개가 만나면 다음 단계로 합쳐져요</p>
-      <p>🏆 마지막엔 감자를 만들어 최고 점수 갱신!</p>
+      <p>🍒 같은 과일끼리 만나면 합쳐져요</p>
+      <p>🥔 마지막엔 감자를 완성해 최고 점수!</p>
       <p>🚨 빨간 선 위로 쌓이지 않게 조심</p>
       <button id="tutorialClose">시작하기</button>
     </div>
@@ -1008,17 +1015,17 @@
         <div class="tier-goal" id="tier-goal">🔥 최고 점수를 갱신해 보세요!</div>
         <div class="tier-sub" id="tier-sub">이번 판 점수가 길드 랭킹에 즉시 반영됩니다</div>
       </div>
-      <!-- 2. 광고 2배 -->
-      <div class="ad-card" id="ad-double-btn">
+      <!-- 2. 광고 2배 (준비중 — 백엔드 연동 후 활성화) -->
+      <div class="ad-card coming-soon" id="ad-double-btn">
         <div class="ad-row">
           <div class="ad-icon">🎁</div>
           <div class="ad-text">
-            <div class="ad-title">광고 보고 이번 판 점수 2배!</div>
-            <div class="ad-sub" id="ad-double-sub">남은 부스터: 5/5회</div>
+            <div class="ad-title">광고 보고 점수 2배</div>
+            <div class="ad-sub" id="ad-double-sub">🔧 준비중</div>
           </div>
           <div class="tgl" id="ad-tgl"><div class="tgl-k"></div></div>
         </div>
-        <div class="ad-hint" id="ad-hint">⚡ ON 상태 · 게임 시작 시 광고 → 이번 판 점수 ×2 적용</div>
+        <div class="ad-hint" id="ad-hint">곧 만나요 — 광고 시청으로 점수 ×2 부스터를 받을 수 있게 됩니다</div>
       </div>
       <!-- 3. 내 전적 -->
       <div class="stats-card" id="stats-card">
@@ -1651,75 +1658,58 @@ function physicsStep(dt) {
         }
 
         if (p === 0) {
-          // 합체 체크
-          if (a.tier === b.tier && !a.merged && !b.merged) {
+          // 합체 체크 — 최종 티어(감자)는 합체 안 함 (점수 손실 방지 + 자연스러운 엔드게임)
+          if (a.tier === b.tier && a.tier < TIERS.length - 1 && !a.merged && !b.merged) {
             a.merged = b.merged = true;
             const mx = (a.x + b.x) * 0.5;
             const my = (a.y + b.y) * 0.5;
             const tIdx = a.tier;
             a.dead = true; b.dead = true;
-            if (tIdx < TIERS.length - 1) {
-              const resultTier = tIdx + 1;
-              const nf = Fruit(mx, my, resultTier);
-              nf.vy = -30;
-              nf.squashTime = 0.22;
-              nf.faceState = 2;
-              nf.faceTimer = 0.35;
-              fruits.push(nf);
-              unlockTier(resultTier);
-              registerCombo();
-              // 보드 점수 변화량 계산 (이득분만 popup 표시)
-              const delta = (TIER_POINTS[resultTier] || 0) - 2 * (TIER_POINTS[tIdx] || 0);
-              stats.mergeCount++;
-              stats.maxCombo = Math.max(stats.maxCombo, comboCount);
-              stats.maxTier = Math.max(stats.maxTier, resultTier);
-              _addMerge();
-              try { checkAchievements(_achCtx()); } catch (e) {}
-              playMergeSfx(tIdx);
-              applyMergeFx(mx, my, resultTier, delta);
-              // ── 중간 마일스톤 보상 (세션 1회) ──
-              if (resultTier === 9 && !window.__melonRewardedThisSession) {
-                window.__melonRewardedThisSession = true;
-                triggerAchievement('🍈 멜론 달성! +100코인');
-                try { window.ParentBridge.earnCoin(100, 'potato_family:melon_made'); } catch (e) {}
-              } else if (resultTier === TIERS.length - 1) {
-                triggerAchievement('🥔 전설의 감자!');
-                triggerFlash(0.5);
-                triggerShake(12, 0.5);
-                triggerSlowMo(0.4, 0.3);
-                // 감자 누적 카운터 (만들 때마다 +1, 영구)
-                try {
-                  const c = parseInt(safeStorage.get('suika_potato_count') || '0', 10) + 1;
-                  safeStorage.set('suika_potato_count', String(c));
-                  window.ParentBridge.cloudSet('suika_potato_count', String(c));
-                  checkAchievements(_achCtx());
-                } catch (e) {}
-                // 감자 달성 보상 — 세션 1회 + 최초 달성 보너스
-                if (!window.__potatoRewardedThisSession) {
-                  window.__potatoRewardedThisSession = true;
-                  try { window.ParentBridge.earnCoin(500, 'potato_family:potato_made'); } catch (e) {}
-                  if (!safeStorage.get('suika_potato_first')) {
-                    safeStorage.set('suika_potato_first', '1');
-                    try { window.ParentBridge.earnDiamond(3, 'potato_family:potato_first_ever'); } catch (e) {}
-                    try { window.ParentBridge.cloudSet('suika_potato_first', '1'); } catch (e) {}
-                  }
+            const resultTier = tIdx + 1;
+            const nf = Fruit(mx, my, resultTier);
+            nf.vy = -30;
+            nf.squashTime = 0.22;
+            nf.faceState = 2;
+            nf.faceTimer = 0.35;
+            fruits.push(nf);
+            unlockTier(resultTier);
+            registerCombo();
+            // 보드 점수 변화량 계산 (이득분만 popup 표시)
+            const delta = (TIER_POINTS[resultTier] || 0) - 2 * (TIER_POINTS[tIdx] || 0);
+            stats.mergeCount++;
+            stats.maxCombo = Math.max(stats.maxCombo, comboCount);
+            stats.maxTier = Math.max(stats.maxTier, resultTier);
+            _addMerge();
+            try { checkAchievements(_achCtx()); } catch (e) {}
+            playMergeSfx(tIdx);
+            applyMergeFx(mx, my, resultTier, delta);
+            // ── 중간 마일스톤 보상 (세션 1회) ──
+            if (resultTier === 9 && !window.__melonRewardedThisSession) {
+              window.__melonRewardedThisSession = true;
+              triggerAchievement('🍈 멜론 달성! +100코인');
+              try { window.ParentBridge.earnCoin(100, 'potato_family:melon_made'); } catch (e) {}
+            } else if (resultTier === TIERS.length - 1) {
+              triggerAchievement('🥔 전설의 감자!');
+              triggerFlash(0.5);
+              triggerShake(12, 0.5);
+              triggerSlowMo(0.4, 0.3);
+              // 감자 누적 카운터 (만들 때마다 +1, 영구)
+              try {
+                const c = parseInt(safeStorage.get('suika_potato_count') || '0', 10) + 1;
+                safeStorage.set('suika_potato_count', String(c));
+                window.ParentBridge.cloudSet('suika_potato_count', String(c));
+                checkAchievements(_achCtx());
+              } catch (e) {}
+              // 감자 달성 보상 — 세션 1회 + 최초 달성 보너스
+              if (!window.__potatoRewardedThisSession) {
+                window.__potatoRewardedThisSession = true;
+                try { window.ParentBridge.earnCoin(500, 'potato_family:potato_made'); } catch (e) {}
+                if (!safeStorage.get('suika_potato_first')) {
+                  safeStorage.set('suika_potato_first', '1');
+                  try { window.ParentBridge.earnDiamond(3, 'potato_family:potato_first_ever'); } catch (e) {}
+                  try { window.ParentBridge.cloudSet('suika_potato_first', '1'); } catch (e) {}
                 }
               }
-            } else {
-              // 감자 + 감자 = 보너스 (기존 룰 유지, 점수 고정)
-              registerCombo();
-              stats.mergeCount++;
-              stats.maxCombo = Math.max(stats.maxCombo, comboCount);
-              spawnPop(mx, my, TIERS[tIdx].color, TIERS[tIdx].r * 1.6);
-              spawnBurst(mx, my, TIERS[tIdx].color, 60);
-              spawnStreaks(mx, my, '#ffde59', 16);
-              spawnScorePopup(mx, my - TIERS[tIdx].r * 0.5, '🎉 BONUS!', true);
-              playMergeSfx(tIdx);
-              haptic('big');
-              triggerShake(15, 0.5);
-              triggerSlowMo(0.35, 0.35);
-              triggerFlash(0.6);
-              triggerAchievement('✨ 감자 콤보!');
             }
           }
         }
@@ -2182,11 +2172,16 @@ const GAME_OVER_MS = 3000; // 과일 상단이 선에 닿은 채 3초
 let paused = false;
 let testMode = false; // 전체 과일 테스트 중엔 게임오버 판정 금지
 
-// 탭 백그라운드 / 포커스 잃을 때 일시정지
+// 탭 백그라운드 / 포커스 잃을 때 일시정지 + BGM 정지/재개 (setPaused와 일관)
 document.addEventListener('visibilitychange', () => {
-  paused = document.hidden || isLandscape();
-  if (paused) {
+  const shouldPause = document.hidden || isLandscape();
+  if (shouldPause && !paused) {
+    paused = true;
     for (const f of fruits) f.overLineAt = 0;
+    try { stopBgm(); } catch (e) {}
+  } else if (!shouldPause && paused && !gameOver && !reviveMode) {
+    paused = false;
+    if (soundOn) { try { startBgm(); } catch (e) {} }
   }
 });
 
@@ -2199,12 +2194,19 @@ function updateOrientation() {
   if (!rotateEl) return;
   if (isLandscape()) {
     rotateEl.classList.add('show');
-    paused = true;
+    if (!paused) {
+      paused = true;
+      try { stopBgm(); } catch (e) {}
+    }
     // 라인 카운트 리셋 (복귀 시 즉시 게임오버 방지)
     for (const f of fruits) f.overLineAt = 0;
   } else {
     rotateEl.classList.remove('show');
+    const wasPaused = paused;
     paused = document.hidden;
+    if (wasPaused && !paused && !gameOver && !reviveMode && soundOn) {
+      try { startBgm(); } catch (e) {}
+    }
   }
 }
 window.addEventListener('resize', updateOrientation);
@@ -2974,8 +2976,8 @@ function renderDex() {
     const url = renderFruitSprite(i);
     // sprite를 img로 넣어서 잠금 상태에서만 CSS 필터 적용 (텍스트는 필터 영향 X)
     cell.innerHTML = `
-      <img class="dex-sprite" src="${url}" alt="">
       <div class="tier-num">${i + 1}</div>
+      <div class="dex-sprite-wrap"><img class="dex-sprite" src="${url}" alt=""></div>
       <div class="tier-name">${t.name}</div>
     `;
     grid.appendChild(cell);
@@ -3211,26 +3213,14 @@ if (lbStartBtn) {
   });
 }
 
-// 광고 2배 토글 (스텁) — 시각 토글만, 실제 ×2 적용은 백엔드 연동 시
-let adDoubleOn = false;
-const adTglEl = document.getElementById('ad-tgl');
-const adHintEl = document.getElementById('ad-hint');
-function refreshAdToggle() {
-  if (!adTglEl || !adHintEl) return;
-  adTglEl.classList.toggle('on', adDoubleOn);
-  adHintEl.textContent = adDoubleOn
-    ? '⚡ ON 상태 · 게임 시작 시 광고 → 이번 판 점수 ×2 적용'
-    : '⚪ OFF · 토글하면 게임 시작 시 광고 보기로 점수 ×2';
-}
+// 광고 2배 — 백엔드 연동 전이라 "준비중" 안내만 (실제 ×2 적용 안 함)
 const adCardEl = document.getElementById('ad-double-btn');
 if (adCardEl) {
   adCardEl.addEventListener('click', (e) => {
     e.stopPropagation();
-    adDoubleOn = !adDoubleOn;
-    refreshAdToggle();
+    showToast('🔧 준비중 — 곧 만나요!', 1400);
   });
 }
-refreshAdToggle();
 
 // 게임 가이드 (튜토리얼 오버레이 재사용)
 const guideTrig = document.getElementById('guide-trigger');
