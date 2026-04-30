@@ -1458,18 +1458,32 @@ try { document.getElementById('debug').textContent = 'init…'; } catch(e) {}
 
 // ============ 과일 정의 ============
 const TIERS = [
-  { name: '체리',     color: '#D32F2F', r: 14,  face: 'smile'  },                          // 1단계: 빨강
-  { name: '딸기',     color: '#FFEB3B', r: 20,  face: 'grin'   },                          // 2단계: 노랑 (빨강·보라와 완전 다른 계열)
-  { name: '포도',     color: '#7B1FA2', r: 28,  face: 'wink-r' },                          // 3단계: 보라
-  { name: '귤',       color: '#FB8C00', r: 37,  face: 'blush'  },                          // 4단계: 주황
-  { name: '감',       color: '#C2185B', r: 47,  face: 'happy'  },                          // 5단계: 딥 라즈베리
-  { name: '사과',     color: '#43A047', r: 56,  face: 'cat'    },                          // 초록 (청사과) [3%↓]
-  { name: '배',       color: '#DCE775', color2: '#F9A825', r: 68,  face: 'tongue' },       // 연두→골드 [3%↓]
-  { name: '복숭아',   color: '#FF7043', color2: '#FDD835', r: 80,  face: 'blush'  },       // 산호→노랑 [3%↓]
-  { name: '파인애플', color: '#FFD54F', color2: '#E65100', r: 91,  face: 'smug'   },       // 노랑→진주황 [3%↓]
-  { name: '멜론',     color: '#9CCC65', color2: '#F06292', r: 103, face: 'wink-l' },       // 연두→핫핑크 [3%↓]
-  { name: '감자',     color: '#8D6E63', color2: '#EF6C00', r: 114, face: 'stoic'  },       // 갈색→주황 [3%↓]
+  { name: '블루베리', color: '#1565C0', r: 14,  face: 'smile'  },                          // 1단계: 파랑
+  { name: '라임',     color: '#9CCC65', r: 20,  face: 'grin'   },                          // 2단계: 연두
+  { name: '사과',     color: '#E53935', r: 28,  face: 'wink-r' },                          // 3단계: 빨강
+  { name: '레몬',     color: '#FDD835', r: 37,  face: 'blush'  },                          // 4단계: 노랑
+  { name: '포도',     color: '#7B1FA2', r: 47,  face: 'happy'  },                          // 5단계: 보라
+  { name: '오렌지',   color: '#FB8C00', r: 56,  face: 'cat'    },                          // 6단계: 주황
+  { name: '자두',     color: '#4527A0', r: 68,  face: 'tongue' },                          // 7단계: 남보라
+  { name: '복숭아',   color: '#FFAB91', r: 80,  face: 'blush'  },                          // 8단계: 살구
+  { name: '수박',     color: '#2E7D32', r: 91,  face: 'smug'   },                          // 9단계: 진초록
+  { name: '파인애플', color: '#FFB300', r: 103, face: 'wink-l' },                          // 10단계: 황금
+  { name: '감자',     color: '#6D4C41', r: 114, face: 'stoic'  },                          // 11단계: 갈색
 ];
+
+// ============ 과일 스프라이트 이미지 프리로드 ============
+// 티어 인덱스 → 파일명. drawFruit에서 본체 렌더링에 사용 (얼굴은 코드로 덧입힘)
+const fruitSprites = {};
+const _spriteFiles = [
+  'blueberry', 'lime', 'apple', 'lemon', 'grape',
+  'orange', 'plum', 'peach', 'watermelon', 'pineapple', 'potato'
+];
+_spriteFiles.forEach((name, i) => {
+  const img = new Image();
+  img.src = '과일이미지/' + name + '.png';
+  img.onload = () => { fruitSprites[i] = img; };
+  img.onerror = () => { console.warn('스프라이트 로드 실패:', name); };
+});
 
 // ============ 캔버스 / 렌더링 셋업 ============
 const canvas = document.getElementById('game');
@@ -2973,11 +2987,11 @@ function renderDex() {
     const cell = document.createElement('div');
     const unlocked = unlockedTiers.has(i);
     cell.className = 'dex-cell' + (unlocked ? '' : ' locked');
-    const url = renderFruitSprite(i);
-    // sprite를 img로 넣어서 잠금 상태에서만 CSS 필터 적용 (텍스트는 필터 영향 X)
+    // 도감은 실제 PNG 파일 직접 사용 (drawFruit 캔버스 변환 거치지 않음)
+    const fileName = _spriteFiles[i];
     cell.innerHTML = `
       <div class="tier-num">${i + 1}</div>
-      <div class="dex-sprite-wrap"><img class="dex-sprite" src="${url}" alt=""></div>
+      <div class="dex-sprite-wrap"><img class="dex-sprite" src="과일이미지/${fileName}.png" alt=""></div>
       <div class="tier-name">${t.name}</div>
     `;
     grid.appendChild(cell);
@@ -3527,37 +3541,32 @@ function drawFruit(f, alpha) {
     ctx.translate(0, r * (1 - squashY) * 0.5);
   }
 
-  const grads = _fruitGrads(ctx, f.tier, r);
-
-  // === 본체 베이스 컬러 ===
-  ctx.fillStyle = grads.body;
-  ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
-
-  // === 강한 림 그림자 (가장자리 어둡게 → 3D 입체감) ===
-  ctx.fillStyle = grads.rim;
-  ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
-
-  // === 하단 반사광 (바닥에서 튕기는 빛) ===
-  ctx.fillStyle = grads.bot;
-  ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
-
-  // 과일 이름 (상단 장식 분기에서 사용)
-  const n = t.name;
-
-  // === 메인 하이라이트 (좌상단 큰 광택) ===
-  ctx.fillStyle = grads.hi;
-  ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
-
-  // === 작은 글린트 (강한 흰점 — 비닐감) ===
-  ctx.fillStyle = 'rgba(255,255,255,0.95)';
-  ctx.beginPath();
-  ctx.ellipse(-r * 0.35, -r * 0.42, r * 0.2, r * 0.11, -0.35, 0, Math.PI * 2);
-  ctx.fill();
-  // 보조 작은 글린트
-  ctx.fillStyle = 'rgba(255,255,255,0.7)';
-  ctx.beginPath();
-  ctx.ellipse(-r * 0.1, -r * 0.55, r * 0.08, r * 0.04, 0.2, 0, Math.PI * 2);
-  ctx.fill();
+  // === 본체 — 스프라이트 이미지 (없으면 그라디언트 폴백) ===
+  const sprite = fruitSprites[f.tier];
+  if (sprite && sprite.complete && sprite.naturalWidth > 0) {
+    // 이미지 1024px + 약 15% 여백(꼭지/잎)을 r 기준 직경에 맞춤
+    const drawSize = r * 2.3;
+    ctx.drawImage(sprite, -drawSize / 2, -drawSize / 2, drawSize, drawSize);
+  } else {
+    // 이미지 로드 전 폴백 — 그라디언트로 임시 렌더링
+    const grads = _fruitGrads(ctx, f.tier, r);
+    ctx.fillStyle = grads.body;
+    ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = grads.rim;
+    ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = grads.bot;
+    ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = grads.hi;
+    ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.95)';
+    ctx.beginPath();
+    ctx.ellipse(-r * 0.35, -r * 0.42, r * 0.2, r * 0.11, -0.35, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+    ctx.beginPath();
+    ctx.ellipse(-r * 0.1, -r * 0.55, r * 0.08, r * 0.04, 0.2, 0, Math.PI * 2);
+    ctx.fill();
+  }
 
   // 얼굴 — 상태에 따라 오버라이드 (낙하=놀람, 합체=기쁨, 라인=땀)
   let face = t.face || 'smile';
@@ -3582,189 +3591,6 @@ function drawFruit(f, alpha) {
     ctx.fillStyle = 'rgba(255,255,255,0.6)';
     ctx.beginPath();
     ctx.ellipse(sx - r * 0.02, sy - r * 0.08, r * 0.025, r * 0.04, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-  }
-
-  // === 과일별 상단 장식 (꼭지/잎/크라운) ===
-  if (n === '체리') {
-    // 휘어진 갈색 꼭지 + 잎
-    ctx.strokeStyle = '#5a3a1a';
-    ctx.lineWidth = Math.max(1.5, r * 0.08);
-    ctx.lineCap = 'round';
-    ctx.beginPath();
-    ctx.moveTo(0, -r * 0.85);
-    ctx.quadraticCurveTo(r * 0.25, -r * 1.15, r * 0.4, -r * 1.22);
-    ctx.stroke();
-    ctx.save();
-    ctx.translate(r * 0.42, -r * 1.18);
-    ctx.rotate(-0.3);
-    ctx.fillStyle = '#6BAA3F';
-    ctx.beginPath();
-    ctx.ellipse(0, 0, r * 0.32, r * 0.14, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = '#3a6a1a';
-    ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(-r * 0.28, 0); ctx.lineTo(r * 0.28, 0); ctx.stroke();
-    ctx.restore();
-  } else if (n === '딸기') {
-    // 녹색 칼릭스 (뾰족한 잎 왕관)
-    ctx.save();
-    ctx.translate(0, -r * 0.85);
-    const leafColors = ['#3d8a28', '#4a9a33', '#58ab3e'];
-    for (let i = -2; i <= 2; i++) {
-      const ang = i * 0.35;
-      const len = r * (0.4 + (Math.abs(i) === 1 ? 0.05 : 0));
-      ctx.save();
-      ctx.rotate(ang);
-      ctx.fillStyle = leafColors[(i + 2) % leafColors.length];
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.quadraticCurveTo(r * 0.15, -len * 0.5, 0, -len);
-      ctx.quadraticCurveTo(-r * 0.15, -len * 0.5, 0, 0);
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(20,50,10,0.5)';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(0, 0); ctx.lineTo(0, -len * 0.9);
-      ctx.stroke();
-      ctx.restore();
-    }
-    ctx.fillStyle = '#2a5a1a';
-    ctx.beginPath();
-    ctx.arc(0, 0, r * 0.13, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-  } else if (n === '귤' || n === '사과') {
-    // 얇은 갈색 꼭지 + 잎
-    ctx.strokeStyle = '#4a2e10';
-    ctx.lineWidth = Math.max(1.5, r * 0.055);
-    ctx.lineCap = 'round';
-    ctx.beginPath();
-    ctx.moveTo(0, -r * 0.92);
-    ctx.lineTo(0, -r * 1.12);
-    ctx.stroke();
-    ctx.save();
-    ctx.translate(r * 0.05, -r * 1.05);
-    ctx.rotate(-0.5);
-    const lg = ctx.createLinearGradient(0, -r * 0.1, 0, r * 0.1);
-    lg.addColorStop(0, '#7cc24a');
-    lg.addColorStop(1, '#3d7a20');
-    ctx.fillStyle = lg;
-    ctx.beginPath();
-    ctx.ellipse(r * 0.18, 0, r * 0.28, r * 0.13, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = '#2a5a10';
-    ctx.lineWidth = 1.2;
-    ctx.beginPath();
-    ctx.moveTo(-r * 0.05, 0);
-    ctx.lineTo(r * 0.35, 0);
-    ctx.stroke();
-    ctx.restore();
-  } else if (n === '감') {
-    // 녹색 4엽 꽃받침
-    ctx.save();
-    ctx.translate(0, -r * 0.85);
-    for (let i = 0; i < 4; i++) {
-      ctx.save();
-      ctx.rotate((i / 4) * Math.PI * 2);
-      const pg = ctx.createLinearGradient(0, 0, r * 0.35, 0);
-      pg.addColorStop(0, '#4a8225');
-      pg.addColorStop(1, '#7ab53d');
-      ctx.fillStyle = pg;
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.quadraticCurveTo(r * 0.2, -r * 0.05, r * 0.36, r * 0.04);
-      ctx.quadraticCurveTo(r * 0.22, r * 0.14, 0, r * 0.08);
-      ctx.closePath();
-      ctx.fill();
-      ctx.strokeStyle = '#2a4f10';
-      ctx.lineWidth = 1;
-      ctx.stroke();
-      ctx.restore();
-    }
-    ctx.fillStyle = '#3a2a10';
-    ctx.beginPath();
-    ctx.arc(0, 0, r * 0.07, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-  } else if (n === '배') {
-    // 얇은 꼭지
-    ctx.strokeStyle = '#6a4a2a';
-    ctx.lineWidth = Math.max(1.2, r * 0.04);
-    ctx.lineCap = 'round';
-    ctx.beginPath();
-    ctx.moveTo(0, -r * 0.95);
-    ctx.quadraticCurveTo(r * 0.04, -r * 1.06, r * 0.02, -r * 1.18);
-    ctx.stroke();
-  } else if (n === '복숭아') {
-    // 잎 1개
-    ctx.save();
-    ctx.translate(r * 0.18, -r * 0.85);
-    ctx.rotate(-0.65);
-    const lg = ctx.createLinearGradient(0, -r * 0.1, 0, r * 0.1);
-    lg.addColorStop(0, '#7cc24a');
-    lg.addColorStop(1, '#3d7a20');
-    ctx.fillStyle = lg;
-    ctx.beginPath();
-    ctx.ellipse(0, 0, r * 0.35, r * 0.13, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = '#2a5a10';
-    ctx.lineWidth = 1.2;
-    ctx.beginPath();
-    ctx.moveTo(-r * 0.3, 0); ctx.lineTo(r * 0.3, 0);
-    ctx.stroke();
-    ctx.restore();
-  } else if (n === '파인애플') {
-    // 뾰족한 녹색 잎 크라운 (5장)
-    ctx.save();
-    ctx.translate(0, -r * 0.82);
-    for (let i = -2; i <= 2; i++) {
-      const ang = i * 0.28;
-      const len = r * (0.55 - Math.abs(i) * 0.07);
-      ctx.save();
-      ctx.rotate(ang);
-      const grd = ctx.createLinearGradient(0, 0, 0, -len);
-      grd.addColorStop(0, '#2a6a18');
-      grd.addColorStop(0.5, '#58b23a');
-      grd.addColorStop(1, '#8dd460');
-      ctx.fillStyle = grd;
-      ctx.beginPath();
-      ctx.moveTo(-r * 0.09, 0);
-      ctx.quadraticCurveTo(-r * 0.04, -len * 0.5, 0, -len);
-      ctx.quadraticCurveTo(r * 0.04, -len * 0.5, r * 0.09, 0);
-      ctx.closePath();
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(20,50,10,0.55)';
-      ctx.lineWidth = 1;
-      ctx.stroke();
-      // 중앙 잎맥
-      ctx.strokeStyle = 'rgba(20,50,10,0.35)';
-      ctx.lineWidth = 0.8;
-      ctx.beginPath();
-      ctx.moveTo(0, 0); ctx.lineTo(0, -len * 0.9);
-      ctx.stroke();
-      ctx.restore();
-    }
-    ctx.restore();
-  } else if (n === '멜론') {
-    // 짧은 꼭지 + 작은 잎
-    ctx.strokeStyle = '#3a6a1a';
-    ctx.lineWidth = Math.max(1.5, r * 0.05);
-    ctx.lineCap = 'round';
-    ctx.beginPath();
-    ctx.moveTo(0, -r * 0.96);
-    ctx.quadraticCurveTo(r * 0.08, -r * 1.04, r * 0.15, -r * 1.1);
-    ctx.stroke();
-    ctx.save();
-    ctx.translate(r * 0.2, -r * 1.02);
-    ctx.rotate(0.35);
-    const lg = ctx.createLinearGradient(0, -r * 0.1, 0, r * 0.1);
-    lg.addColorStop(0, '#7cc24a');
-    lg.addColorStop(1, '#3d7a20');
-    ctx.fillStyle = lg;
-    ctx.beginPath();
-    ctx.ellipse(0, 0, r * 0.22, r * 0.09, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
   }
