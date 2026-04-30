@@ -24,7 +24,7 @@
     --safe-left: max(env(safe-area-inset-left, 0px), var(--tg-chrome-left), 0px);
     --safe-right: max(env(safe-area-inset-right, 0px), var(--tg-chrome-right), 0px);
     --safe-bottom: max(env(safe-area-inset-bottom, 0px), var(--tg-chrome-bottom), 0px);
-    color-scheme: dark;const drawSize = r * 1.75;
+    color-scheme: dark;
   }
 
   /* ═══ Telegram iOS swipe-to-minimize 방어: 1px Buffer 트릭 ═══
@@ -3544,9 +3544,11 @@ function drawFruit(f, alpha) {
   // === 본체 — 스프라이트 이미지 (없으면 그라디언트 폴백) ===
   const sprite = fruitSprites[f.tier];
   if (sprite && sprite.complete && sprite.naturalWidth > 0) {
-    // 이미지 여백 없음 — 충돌 직경(2r)에 정확히 맞춤
-    const drawSize = r * 2;
-    ctx.drawImage(sprite, -drawSize / 2, -drawSize / 2, drawSize, drawSize);
+    // 이미지 비율 유지 — 가로는 충돌 직경(2r)에 맞추고 세로는 비율대로 (꼭지/잎이 위로 늘어남)
+    // 본체 하단이 충돌 원 하단(y=r)에 오도록 정렬 → 본체가 충돌 영역에 자연스럽게 들어옴
+    const drawW = r * 2;
+    const drawH = drawW * (sprite.naturalHeight / sprite.naturalWidth);
+    ctx.drawImage(sprite, -drawW / 2, r - drawH, drawW, drawH);
   } else {
     // 이미지 로드 전 폴백 — 그라디언트로 임시 렌더링
     const grads = _fruitGrads(ctx, f.tier, r);
