@@ -1458,16 +1458,16 @@ try { document.getElementById('debug').textContent = 'init…'; } catch(e) {}
 
 // ============ 과일 정의 ============
 const TIERS = [
-  { name: '블루베리', color: '#1565C0', r: 14,  face: 'smile'  },                          // 1단계: 파랑
-  { name: '라임',     color: '#9CCC65', r: 20,  face: 'grin'   },                          // 2단계: 연두
+  { name: '청포도',   color: '#C0CA33', r: 14,  face: 'smile'  },                          // 1단계: 연두
+  { name: '자두',     color: '#4527A0', r: 20,  face: 'grin'   },                          // 2단계: 남보라
   { name: '사과',     color: '#E53935', r: 28,  face: 'wink-r' },                          // 3단계: 빨강
   { name: '레몬',     color: '#FDD835', r: 37,  face: 'blush'  },                          // 4단계: 노랑
-  { name: '포도',     color: '#7B1FA2', r: 47,  face: 'happy'  },                          // 5단계: 보라
+  { name: '복숭아',   color: '#FFAB91', r: 47,  face: 'happy'  },                          // 5단계: 살구
   { name: '오렌지',   color: '#FB8C00', r: 56,  face: 'cat'    },                          // 6단계: 주황
-  { name: '자두',     color: '#4527A0', r: 68,  face: 'tongue' },                          // 7단계: 남보라
-  { name: '복숭아',   color: '#FFAB91', r: 80,  face: 'blush'  },                          // 8단계: 살구
-  { name: '수박',     color: '#2E7D32', r: 91,  face: 'smug'   },                          // 9단계: 진초록
-  { name: '파인애플', color: '#FFB300', r: 103, face: 'wink-l' },                          // 10단계: 황금
+  { name: '용과',     color: '#D81B60', r: 68,  face: 'tongue' },                          // 7단계: 마젠타
+  { name: '파인애플', color: '#FFB300', r: 80,  face: 'blush'  },                          // 8단계: 황금
+  { name: '멜론',     color: '#26A69A', r: 91,  face: 'smug'   },                          // 9단계: 민트/청록
+  { name: '수박',     color: '#2E7D32', r: 103, face: 'wink-l' },                          // 10단계: 진초록
   { name: '감자',     color: '#6D4C41', r: 114, face: 'stoic'  },                          // 11단계: 갈색
 ];
 
@@ -1475,8 +1475,8 @@ const TIERS = [
 // 티어 인덱스 → 파일명. drawFruit에서 본체 렌더링에 사용 (얼굴은 코드로 덧입힘)
 const fruitSprites = {};
 const _spriteFiles = [
-  'blueberry', 'lime', 'apple', 'lemon', 'grape',
-  'orange', 'plum', 'peach', 'watermelon', 'pineapple', 'potato'
+  'greengrape', 'plum', 'apple', 'lemon', 'peach',
+  'orange', 'dragonfruit', 'pineapple', 'melon', 'watermelon', 'potato'
 ];
 _spriteFiles.forEach((name, i) => {
   const img = new Image();
@@ -3544,11 +3544,11 @@ function drawFruit(f, alpha) {
   // === 본체 — 스프라이트 이미지 (없으면 그라디언트 폴백) ===
   const sprite = fruitSprites[f.tier];
   if (sprite && sprite.complete && sprite.naturalWidth > 0) {
-    // 이미지 비율 유지 — 가로는 충돌 직경(2r)에 맞추고 세로는 비율대로 (꼭지/잎이 위로 늘어남)
-    // 본체 하단이 충돌 원 하단(y=r)에 오도록 정렬 → 본체가 충돌 영역에 자연스럽게 들어옴
+    // 이미지가 1024x1024 정사각형이고 본체가 사방 끝에 닿게 채워진 케이스
+    // → 이미지 중심을 과일 중심에 맞춰 그리면 본체가 충돌 원에 정확히 맞아 들어감
     const drawW = r * 2;
     const drawH = drawW * (sprite.naturalHeight / sprite.naturalWidth);
-    ctx.drawImage(sprite, -drawW / 2, r - drawH, drawW, drawH);
+    ctx.drawImage(sprite, -drawW / 2, -drawH / 2, drawW, drawH);
   } else {
     // 이미지 로드 전 폴백 — 그라디언트로 임시 렌더링
     const grads = _fruitGrads(ctx, f.tier, r);
