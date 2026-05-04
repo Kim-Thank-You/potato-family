@@ -99,23 +99,23 @@
   }
   .score-box {
     font-weight: 800;
-    /* 파스텔 배경에 어울리는 부드러운 라벤더-화이트 카드 */
-    background: linear-gradient(180deg, rgba(255,255,255,0.85) 0%, rgba(245,235,250,0.78) 100%);
-    padding: 8px 16px 10px;
-    border-radius: 18px;
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
-    border: 1.5px solid rgba(168,139,176,0.5);
-    box-shadow: 0 3px 10px rgba(120,90,140,0.25), inset 0 1px 0 rgba(255,255,255,0.8);
+    /* 가독성 강한 어두운 카드 + 부드러운 가장자리 */
+    background: rgba(40,25,55,0.55);
+    padding: 7px 15px 9px;
+    border-radius: 16px;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    border: 1px solid rgba(255,255,255,0.18);
+    box-shadow: 0 3px 10px rgba(0,0,0,0.3);
     display: inline-block;
   }
   .score-row { display: flex; align-items: baseline; gap: 8px; margin-bottom: 1px; }
-  .score-label { font-size: 12px; opacity: .85; min-width: 42px; color: #6B4880; font-weight: 800; letter-spacing: 0.3px; }
-  .score-value { font-size: 15px; color: #B8458F; font-weight: 800; }
+  .score-label { font-size: 12px; opacity: .9; min-width: 42px; color: #fff; font-weight: 700; letter-spacing: 0.3px; }
+  .score-value { font-size: 15px; color: #ffde59; font-weight: 700; }
   .big {
     font-size: 28px !important;
-    color: #C2185B !important;
-    text-shadow: 0 1px 0 rgba(255,255,255,0.6), 0 0 8px rgba(216,27,96,0.25);
+    color: #ffde59 !important;
+    text-shadow: 0 2px 0 rgba(0,0,0,.45), 0 0 8px rgba(255,222,89,0.4);
     font-family: 'Do Hyeon', 'Jua', sans-serif;
     letter-spacing: 0.5px;
   }
@@ -343,43 +343,45 @@
   }
   .dex-overlay.show { display: flex; }
   .dex-card {
-    background: linear-gradient(180deg, #fff5d5 0%, #ffdc7a 100%);
-    border: 4px solid #8a5a00;
-    border-radius: 18px;
+    /* 부드러운 라벤더-크림 그라데이션 — 새 배경 톤이랑 어울림 */
+    background: linear-gradient(180deg, #FFF5F8 0%, #F2DDF0 100%);
+    border: 3px solid #B8458F;
+    border-radius: 22px;
     padding: 18px 22px;
     max-width: 92%;
     max-height: 92%;
     overflow-y: auto;
-    color: #3a2000;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    color: #4A2050;
+    box-shadow: 0 10px 30px rgba(120,40,100,0.35), inset 0 2px 0 rgba(255,255,255,0.6);
   }
   .dex-card h2 {
     margin: 0 0 12px; font-family: 'Do Hyeon', sans-serif;
-    font-size: 26px; text-align: center; color: #8a3a00;
+    font-size: 26px; text-align: center; color: #B8458F;
+    text-shadow: 0 1px 0 rgba(255,255,255,0.5);
   }
   .dex-progress {
     font-size: 14px; text-align: center; margin-bottom: 14px; font-weight: 700;
   }
   .dex-progress .bar {
-    height: 8px; background: rgba(0,0,0,0.12); border-radius: 4px; margin-top: 6px; overflow: hidden;
+    height: 8px; background: rgba(74,32,80,0.15); border-radius: 4px; margin-top: 6px; overflow: hidden;
   }
   .dex-progress .fill {
-    height: 100%; background: linear-gradient(90deg, #43a047, #8bc34a); border-radius: 4px;
+    height: 100%; background: linear-gradient(90deg, #E091C4, #B8458F); border-radius: 4px;
     transition: width 0.3s;
   }
   .dex-grid {
     display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 14px;
   }
   .dex-cell {
-    border-radius: 12px;
+    border-radius: 14px;
     display: flex; flex-direction: column; align-items: stretch;
     padding: 6px 4px 8px;
     font-family: 'Jua', sans-serif;
-    font-weight: 700; color: #3a2000;
-    border: 2px solid #a87a20;
-    box-shadow: inset -2px -3px 6px rgba(0,0,0,0.12);
+    font-weight: 700; color: #4A2050;
+    border: 2px solid #D8A8C8;
+    box-shadow: inset -2px -3px 6px rgba(120,40,100,0.10);
     position: relative;
-    background: #f5eac8;
+    background: #FFFAFC;
     overflow: hidden;
   }
   .dex-cell .dex-sprite-wrap {
@@ -405,43 +407,57 @@
   }
   .dex-cell .tier-num {
     position: absolute; top: 3px; left: 5px;
-    font-size: 10px; opacity: 0.85; color: #6a4810;
-    background: rgba(255,255,255,0.6);
+    font-size: 10px; opacity: 0.95; color: #B8458F;
+    background: rgba(255,255,255,0.85);
     padding: 1px 5px; border-radius: 6px;
     z-index: 2;
+    border: 1px solid rgba(184,69,143,0.3);
   }
-  .dex-cell.locked .tier-num { color: rgba(255,255,255,0.7); background: rgba(0,0,0,0.4); }
+  .dex-cell.locked .tier-num { color: rgba(255,255,255,0.85); background: rgba(74,32,80,0.6); border-color: transparent; }
   .dex-cell .tier-name {
     text-align: center;
     margin-top: 4px;
-    font-size: 13px;
-    line-height: 1.2;
+    font-size: 12px;
+    line-height: 1.25;
     color: #3a2000;
+    /* 다국어 대응 — 2줄까지 자연스럽게 */
+    min-height: 2.5em;       /* 1줄/2줄 케이스 모두 셀 높이 통일 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    word-break: keep-all;    /* 한글: 어절 단위 줄바꿈 */
+    overflow-wrap: break-word; /* 영어: 긴 단어 자동 줄바꿈 */
+    hyphens: auto;
+    padding: 0 2px;
   }
+  /* 12자 이상 긴 이름은 폰트 살짝 줄임 */
+  .dex-cell .tier-name.long { font-size: 11px; }
+  .dex-cell .tier-name.very-long { font-size: 10px; line-height: 1.2; }
   .dex-close {
     display: block; margin: 0 auto;
-    background: linear-gradient(180deg, #ffcf4a 0%, #ff9e2c 100%);
-    border: 3px solid #7a4a00; color: #4a2800;
+    background: linear-gradient(180deg, #E091C4 0%, #B8458F 100%);
+    border: 3px solid #8A2D6A; color: #fff;
     padding: 8px 24px; border-radius: 20px;
     font-family: 'Jua', sans-serif; font-size: 15px; font-weight: 700;
-    cursor: pointer; box-shadow: 0 3px 0 #7a4a00;
+    cursor: pointer; box-shadow: 0 3px 0 #8A2D6A;
   }
+  .dex-close:active { transform: translateY(2px); box-shadow: 0 1px 0 #8A2D6A; }
   /* 도감 우측 상단 X 버튼 — 스크롤과 무관하게 항상 보임 */
   .dex-close-x {
     position: absolute; top: 14px; right: 14px;
     width: 38px; height: 38px;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.95);
-    border: 2px solid #8a3a00;
-    color: #8a3a00;
+    background: #fff;
+    border: 2px solid #B8458F;
+    color: #B8458F;
     font-size: 26px; font-weight: 900;
     line-height: 1; padding: 0;
     cursor: pointer;
     display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+    box-shadow: 0 2px 8px rgba(120,40,100,0.35);
     z-index: 31;
   }
-  .dex-close-x:active { transform: translateY(1px); box-shadow: 0 1px 4px rgba(0,0,0,0.35); }
+  .dex-close-x:active { transform: translateY(1px); box-shadow: 0 1px 4px rgba(120,40,100,0.35); }
   .tutorial-overlay {
     position: absolute; inset: 0; z-index: 50;
     background: rgba(0,0,0,0.7);
@@ -3042,10 +3058,13 @@ function renderDex() {
     cell.className = 'dex-cell' + (unlocked ? '' : ' locked');
     // 도감은 실제 PNG 파일 직접 사용 (drawFruit 캔버스 변환 거치지 않음)
     const fileName = _spriteFiles[i];
+    // 다국어 대응: 이름 길이에 따라 폰트 축소 클래스 부여
+    const nameLen = t.name.length;
+    const sizeClass = nameLen >= 14 ? ' very-long' : (nameLen >= 9 ? ' long' : '');
     cell.innerHTML = `
       <div class="tier-num">${i + 1}</div>
       <div class="dex-sprite-wrap"><img class="dex-sprite" src="과일이미지/${fileName}.png" alt=""></div>
-      <div class="tier-name">${t.name}</div>
+      <div class="tier-name${sizeClass}">${t.name}</div>
     `;
     grid.appendChild(cell);
   });
@@ -3696,24 +3715,24 @@ function ensureBgCache() {
 }
 
 function drawStaticBackground(c) {
-  // 좌우 나무 트렁크 — 라벤더 브라운 (파스텔 노을 배경에 어울림)
+  // 좌우 나무 트렁크 — 자연스러운 따뜻한 갈색 (어둡지 않게)
   const trunkW = 22;
   const lg = c.createLinearGradient(0, 0, trunkW, 0);
-  lg.addColorStop(0, '#7A5C82'); lg.addColorStop(0.5, '#A88BB0'); lg.addColorStop(1, '#8B6C8F');
+  lg.addColorStop(0, '#5C3D24'); lg.addColorStop(0.5, '#8B6442'); lg.addColorStop(1, '#6E4A2E');
   c.fillStyle = lg; c.fillRect(0, 0, trunkW, H);
   const rg = c.createLinearGradient(W - trunkW, 0, W, 0);
-  rg.addColorStop(0, '#8B6C8F'); rg.addColorStop(0.5, '#A88BB0'); rg.addColorStop(1, '#7A5C82');
+  rg.addColorStop(0, '#6E4A2E'); rg.addColorStop(0.5, '#8B6442'); rg.addColorStop(1, '#5C3D24');
   c.fillStyle = rg; c.fillRect(W - trunkW, 0, trunkW, H);
-  // 트렁크 결 텍스처 — 부드럽게 (검정 대신 짙은 보라)
-  c.strokeStyle = 'rgba(80,55,90,0.35)'; c.lineWidth = 1;
+  // 트렁크 결 텍스처
+  c.strokeStyle = 'rgba(50,30,15,0.4)'; c.lineWidth = 1;
   for (let y = 0; y < H; y += 14) {
     c.beginPath(); c.moveTo(5, y); c.lineTo(7, y + 10); c.stroke();
     c.beginPath(); c.moveTo(14, y + 7); c.lineTo(16, y + 17); c.stroke();
     c.beginPath(); c.moveTo(W - 17, y); c.lineTo(W - 15, y + 10); c.stroke();
     c.beginPath(); c.moveTo(W - 8, y + 7); c.lineTo(W - 6, y + 17); c.stroke();
   }
-  // 덩굴 줄기 — 부드러운 민트 (배경 풀 색이랑 조화)
-  c.strokeStyle = 'rgba(140,180,150,0.7)'; c.lineWidth = 2;
+  // 덩굴 줄기 — 채도 있는 자연스러운 녹색
+  c.strokeStyle = 'rgba(85,140,90,0.85)'; c.lineWidth = 2;
   c.beginPath();
   c.moveTo(28, 0);
   c.quadraticCurveTo(45, 40, 32, 90);
@@ -3800,8 +3819,8 @@ function drawLeafCluster(cx, cy, size, tilt, seed) {
   ctx.save();
   ctx.translate(cx, cy);
   ctx.rotate(tilt);
-  // 부드러운 민트/세이지 톤 — 파스텔 노을 배경에 어울림
-  const palette = ['#A8D5B0', '#9DC09D', '#B8DDC0', '#88B898'];
+  // 자연스러운 잎사귀 — 채도 살린 푸른 녹색 (배경 풀과 조화, 너무 흐리지 않게)
+  const palette = ['#3A7A2E', '#4F9B3D', '#6BB855', '#5AA047'];
   const leaves = [
     { x: -size * 0.45, y: 0, w: size * 0.9, h: size * 0.45, a: -0.3, c: 0 },
     { x: size * 0.1, y: -size * 0.2, w: size * 0.85, h: size * 0.4, a: -0.1, c: 1 },
@@ -3822,8 +3841,8 @@ function drawLeafCluster(cx, cy, size, tilt, seed) {
     ctx.beginPath();
     ctx.ellipse(0, 0, L.w, L.h, 0, 0, Math.PI * 2);
     ctx.fill();
-    // 잎맥 — 부드러운 짙은 세이지
-    ctx.strokeStyle = 'rgba(80,120,90,0.4)';
+    // 잎맥
+    ctx.strokeStyle = 'rgba(20,55,15,0.4)';
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(-L.w * 0.9, 0); ctx.lineTo(L.w * 0.9, 0);
@@ -3838,13 +3857,13 @@ function drawSmallLeaf(x, y, tilt) {
   ctx.translate(x, y);
   ctx.rotate(tilt);
   const lg = ctx.createLinearGradient(-12, 0, 12, 0);
-  lg.addColorStop(0, '#88B898');
-  lg.addColorStop(1, '#B8DDC0');
+  lg.addColorStop(0, '#3A7A2E');
+  lg.addColorStop(1, '#6BB855');
   ctx.fillStyle = lg;
   ctx.beginPath();
   ctx.ellipse(0, 0, 12, 5, 0, 0, Math.PI * 2);
   ctx.fill();
-  ctx.strokeStyle = 'rgba(80,120,90,0.4)';
+  ctx.strokeStyle = 'rgba(20,55,15,0.4)';
   ctx.lineWidth = 0.8;
   ctx.beginPath();
   ctx.moveTo(-10, 0); ctx.lineTo(10, 0);
@@ -4416,48 +4435,48 @@ const WET_SPOTS = [[0.15, 0.45], [0.38, 0.55], [0.62, 0.35], [0.85, 0.6]];
 
 function drawGround() {
   const fy = H - SAFE_BOTTOM;
-  // 핑크빛 베이지 흙 베이스 — 파스텔 노을 배경에 어울리는 부드러운 톤
+  // 따뜻한 황톳빛 흙 — 자연스럽게 (너무 어둡지 않게, 너무 하얗지도 않게)
   const g = ctx.createLinearGradient(0, fy, 0, H);
-  g.addColorStop(0, '#E8D0C0');
-  g.addColorStop(0.18, '#D8B8A8');
-  g.addColorStop(0.55, '#C8A890');
-  g.addColorStop(1, '#A88878');
+  g.addColorStop(0, '#A87D52');
+  g.addColorStop(0.2, '#8B6438');
+  g.addColorStop(0.55, '#6E4E28');
+  g.addColorStop(1, '#4A331A');
   ctx.fillStyle = g;
   ctx.fillRect(0, fy, W, SAFE_BOTTOM);
 
-  // 상단 부드러운 하이라이트 — 파스텔 핑크 윤기
+  // 상단 따뜻한 하이라이트
   const shine = ctx.createLinearGradient(0, fy, 0, fy + 8);
-  shine.addColorStop(0, 'rgba(255,220,210,0.55)');
-  shine.addColorStop(1, 'rgba(255,220,210,0)');
+  shine.addColorStop(0, 'rgba(220,180,130,0.55)');
+  shine.addColorStop(1, 'rgba(220,180,130,0)');
   ctx.fillStyle = shine;
   ctx.fillRect(0, fy, W, 8);
 
-  // 부드러운 윤기 패치 (이전 물얼룩 → 살짝 빛 반사 느낌)
+  // 윤기 패치 (자연스러운 흙 반사광)
   for (const [sx, sy] of WET_SPOTS) {
     const px = sx * W, py = fy + sy * SAFE_BOTTOM;
     const ws = ctx.createRadialGradient(px, py - 2, 0, px, py, 14);
-    ws.addColorStop(0, 'rgba(255,235,225,0.45)');
-    ws.addColorStop(0.5, 'rgba(255,220,210,0.18)');
-    ws.addColorStop(1, 'rgba(255,220,210,0)');
+    ws.addColorStop(0, 'rgba(230,190,140,0.4)');
+    ws.addColorStop(0.5, 'rgba(200,160,110,0.18)');
+    ws.addColorStop(1, 'rgba(200,160,110,0)');
     ctx.fillStyle = ws;
     ctx.beginPath();
     ctx.ellipse(px, py, 18, 7, 0, 0, Math.PI * 2);
     ctx.fill();
   }
 
-  // 흙 알갱이 — 부드러운 핑크 / 라벤더 톤으로 교체
+  // 흙 알갱이 — 자연스러운 흙 톤
   for (const [sx, sy, type, size] of SOIL_SPECKS) {
     const px = sx * W, py = fy + sy * SAFE_BOTTOM;
-    if (type === 'light') ctx.fillStyle = 'rgba(255,210,200,0.65)';
-    else if (type === 'dark') ctx.fillStyle = 'rgba(150,110,120,0.55)';
-    else ctx.fillStyle = 'rgba(190,140,140,0.6)';
+    if (type === 'light') ctx.fillStyle = 'rgba(180,130,80,0.7)';
+    else if (type === 'dark') ctx.fillStyle = 'rgba(40,25,10,0.7)';
+    else ctx.fillStyle = 'rgba(110,75,40,0.75)';
     ctx.beginPath();
     ctx.arc(px, py, size, 0, Math.PI * 2);
     ctx.fill();
   }
 
-  // 지면 상단 경계 — 부드러운 라벤더 라인
-  ctx.strokeStyle = 'rgba(160,120,140,0.8)';
+  // 지면 상단 경계
+  ctx.strokeStyle = 'rgba(90,60,30,0.9)';
   ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.moveTo(0, fy); ctx.lineTo(W, fy);
