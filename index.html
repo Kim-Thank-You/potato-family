@@ -253,7 +253,7 @@
     50%      { transform: rotate(0); }
     85%, 100%{ transform: rotate(90deg); }
   }
-  #muteBtn, #dexBtn, #pauseBtn, #undoBtn, #testBtn {
+  #muteBtn, #dexBtn, #pauseBtn, #undoBtn {
     position: absolute; top: 12px; z-index: 20;
     width: 36px; height: 36px; border-radius: 50%;
     background: rgba(0,0,0,0.55); color: #fff; border: 1.5px solid rgba(255,255,255,0.4);
@@ -265,8 +265,6 @@
   #dexBtn  { right: 56px; }
   #pauseBtn { right: 100px; }
   #undoBtn  { right: 144px; font-size: 18px; position: relative; }
-  #testBtn { right: 188px; background: rgba(220,60,60,0.85); }
-  #testBtn:active { background: rgba(180,30,30,0.95); transform: translateY(1px); }
   #undoBtn .undo-badge {
     position: absolute; bottom: -3px; right: -3px; min-width: 16px; height: 16px;
     border-radius: 10px; background: #fbbf24; color: #2a1800; font-size: 10px; font-weight: 900;
@@ -364,8 +362,29 @@
   .dex-card-scroll {
     overflow-y: auto;
     flex: 1 1 auto;
-    /* X 버튼 영역 침범 방지 */
+    /* X 버튼 영역 침범 방지 + 스크롤바가 셀 위에 뜨지 않게 우측 패딩 */
     padding-top: 4px;
+    padding-right: 6px;
+    /* 스크롤바 자체 스타일 (Firefox) */
+    scrollbar-width: thin;
+    scrollbar-color: #B8458F rgba(74,32,80,0.08);
+  }
+  /* 스크롤바 (WebKit: Chrome/Safari/iOS) */
+  .dex-card-scroll::-webkit-scrollbar {
+    width: 8px;
+  }
+  .dex-card-scroll::-webkit-scrollbar-track {
+    background: rgba(74,32,80,0.08);
+    border-radius: 8px;
+    margin: 4px 0;
+  }
+  .dex-card-scroll::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #E091C4 0%, #B8458F 100%);
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.5);
+  }
+  .dex-card-scroll::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #D87FB6 0%, #9F3677 100%);
   }
   .dex-card h2 {
     margin: 0 0 12px; font-family: 'Do Hyeon', sans-serif;
@@ -1037,7 +1056,6 @@
   <button id="dexBtn" title="도감">📖</button>
   <button id="pauseBtn" title="일시정지">⏸</button>
   <button id="undoBtn" title="되돌리기">↶<span class="undo-badge" id="undoBadge">3</span></button>
-  <button id="testBtn" title="[임시] 모든 과일 소환">🧪</button>
   <div id="pauseOverlay">
     <div class="pause-card">
       <span class="pause-card-ico">🥔</span>
@@ -2144,9 +2162,15 @@ function dropFruit(x) {
   if (!canDrop || gameOver || paused) return;
   _snapshotForUndo(); // 드롭 직전 스냅샷
   const r = TIERS[currentTier].r;
-  const cx = Math.max(r + 4, Math.min(W - r - 4, x));
+  // PC에서 정확히 같은 좌표를 클릭해도 1자로 쌓이지 않도록 미세 변동 추가
+  // (모바일 터치의 자연스러운 흔들림을 시뮬레이션 — 체감 안 될 정도로 작게)
+  const xJitter = (Math.random() - 0.5) * 4;        // ±2px 위치 변동
+  const cx = Math.max(r + 4, Math.min(W - r - 4, x + xJitter));
   const cy = Math.max(r + 10, LINE_Y - r - 10);
-  fruits.push(Fruit(cx, cy, currentTier));
+  const f = Fruit(cx, cy, currentTier);
+  f.vx = (Math.random() - 0.5) * 30;                // ±15 px/s 초기 사이드 드리프트
+  f.va = (Math.random() - 0.5) * 0.6;               // ±0.3 rad/s 초기 회전
+  fruits.push(f);
   currentTier = nextTier;
   nextTier = randomSpawnTier();
   canDrop = false;
@@ -2196,10 +2220,9 @@ function onDown(e) {
     e.target.closest('#dexBtn') ||
     e.target.closest('#pauseBtn') ||
     e.target.closest('#undoBtn') ||
-    e.target.closest('#testBtn') ||
     e.target.closest('#pauseOverlay') ||
     e.target.closest('#tutorialClose') ||
-    e.target.closest('#dexClose')
+    e.target.closest('#dexCloseX')
   )) return;
   if (document.getElementById('tutorial').classList.contains('show')) return;
   if (document.getElementById('dexOverlay').classList.contains('show')) return;
@@ -3021,48 +3044,8 @@ function finishRevive() {
   }
 }
 
-// ============ 도감 — 실제 게임 내 과일 모습 스프라이트 ============
-const fruitSpriteCache = {}; // tier idx → dataURL
-
-// drawFruit을 오프스크린 캔버스에 재사용해 실제 과일 이미지 생성
-function renderFruitSprite(tierIdx) {
-  if (fruitSpriteCache[tierIdx]) return fruitSpriteCache[tierIdx];
-  const SIZE = 160; // 스프라이트 크기 (고해상도)
-  const sprite = document.createElement('canvas');
-  sprite.width = sprite.height = SIZE;
-  const sctx = sprite.getContext('2d');
-  // 가짜 과일 데이터 (중앙 배치, 회전 없음)
-  const fakeFruit = {
-    x: SIZE / 2,
-    y: SIZE / 2 + 8,       // 꼭지/잎이 위로 올라가니 살짝 내림
-    tier: tierIdx,
-    r: SIZE * 0.32,         // 여백 확보 (꼭지/크라운 공간)
-    angle: 0,
-    dead: false,
-    squashTime: 0,
-    faceState: 0,
-    faceTimer: 0,
-    createdAt: 0,
-    overLineAt: 0,
-    merged: false,
-    mass: 1, invMass: 1,
-    vx: 0, vy: 0, va: 0,
-    id: 0,
-    groundedTick: 0,
-  };
-  // ctx 임시 교체 → drawFruit 그대로 사용
-  const savedCtx = ctx;
-  ctx = sctx;
-  try {
-    drawFruit(fakeFruit, 1.0);
-  } catch (e) {
-    console.error('sprite render error', e);
-  }
-  ctx = savedCtx;
-  const url = sprite.toDataURL();
-  fruitSpriteCache[tierIdx] = url;
-  return url;
-}
+// ============ 도감 ============
+// (이전: 캔버스 스프라이트 동적 생성 — 이미지 도입 후 제거)
 
 function renderDex() {
   const grid = document.getElementById('dexGrid');
@@ -3151,20 +3134,6 @@ document.getElementById('pauseBtn').addEventListener('click', (e) => {
   e.stopPropagation();
   if (gameOver || reviveMode) return;
   setPaused(!paused);
-});
-// [임시 테스트] 11개 과일 한 번에 소환 — 게임오버 판정 비활성화
-document.getElementById('testBtn').addEventListener('click', (e) => {
-  e.stopPropagation();
-  if (gameOver || reviveMode) return;
-  testMode = true;
-  for (let i = 0; i < TIERS.length; i++) {
-    const r = TIERS[i].r;
-    const x = r + 8 + ((i / (TIERS.length - 1)) * (W - 2 * r - 16));
-    const y = r + 30 + (i % 3) * 24; // 살짝 지그재그로 충돌 분산
-    const f = Fruit(x, y, i);
-    fruits.push(f);
-  }
-  showToast('🧪 11개 소환 — 게임오버 잠시 비활성', 1500);
 });
 document.getElementById('pauseResume').addEventListener('click', (e) => {
   e.stopPropagation();
@@ -3550,18 +3519,27 @@ function drawFace(r, face) {
     ctx.ellipse(0, mouthY + mw * 0.6, mw * 0.9, mw * 0.3, 0, 0, Math.PI * 2);
     ctx.fill();
   } else if (face === 'tongue') {
+    // 용과용 — 핫핑크 배경에서도 잘 보이는 활기찬 큰 미소 (어두운 입 + 흰 이빨)
+    ctx.save();
+    ctx.fillStyle = '#1a1a2e';
     ctx.beginPath();
-    ctx.arc(0, mouthY, mw, 0.1 * Math.PI, 0.9 * Math.PI);
-    ctx.stroke();
-    ctx.fillStyle = '#ff708a';
-    ctx.beginPath();
-    ctx.ellipse(mw * 0.35, mouthY + mw * 0.5, mw * 0.5, mw * 0.35, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, mouthY + mw * 0.05, mw * 1.25, mw * 0.85, 0, 0, Math.PI);
     ctx.fill();
-  } else if (face === 'stoic') {
+    // 위쪽 흰 이빨 띠
+    ctx.fillStyle = '#fff';
     ctx.beginPath();
-    ctx.moveTo(-mw * 0.7, mouthY + mw * 0.15);
-    ctx.lineTo(mw * 0.7, mouthY + mw * 0.15);
+    ctx.ellipse(0, mouthY + mw * 0.05, mw * 1.15, mw * 0.18, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  } else if (face === 'stoic') {
+    // 감자 입 — 위치 +7px 아래, 두께 +3px
+    ctx.save();
+    ctx.lineWidth = (Math.max(1.8, r * 0.065)) + 3;
+    ctx.beginPath();
+    ctx.moveTo(-mw * 0.7, mouthY + mw * 0.15 + 7);
+    ctx.lineTo(mw * 0.7, mouthY + mw * 0.15 + 7);
     ctx.stroke();
+    ctx.restore();
   } else if (face === 'smug') {
     ctx.beginPath();
     ctx.moveTo(-mw * 1.05, mouthY + mw * 0.35);
@@ -3773,57 +3751,6 @@ function drawBackground() {
   // 덩굴 끝 잎
   drawSmallLeaf(38 + Math.sin(t * 1.1) * 2, 180, -0.3);
   drawSmallLeaf(W - 38 - Math.sin(t * 0.9) * 2, 200, 0.3 + Math.PI);
-}
-
-function _drawBackgroundOld() {
-  // 좌우 나무 트렁크 (세로 띠)
-  const trunkW = 22;
-  const lg = ctx.createLinearGradient(0, 0, trunkW, 0);
-  lg.addColorStop(0, '#2d1a08');
-  lg.addColorStop(0.5, '#5a3818');
-  lg.addColorStop(1, '#3d2510');
-  ctx.fillStyle = lg;
-  ctx.fillRect(0, 0, trunkW, H);
-  const rg = ctx.createLinearGradient(W - trunkW, 0, W, 0);
-  rg.addColorStop(0, '#3d2510');
-  rg.addColorStop(0.5, '#5a3818');
-  rg.addColorStop(1, '#2d1a08');
-  ctx.fillStyle = rg;
-  ctx.fillRect(W - trunkW, 0, trunkW, H);
-  // 트렁크 세로 결 (텍스처)
-  ctx.strokeStyle = 'rgba(0,0,0,0.35)';
-  ctx.lineWidth = 1;
-  for (let y = 0; y < H; y += 14) {
-    ctx.beginPath();
-    ctx.moveTo(5, y); ctx.lineTo(7, y + 10); ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(14, y + 7); ctx.lineTo(16, y + 17); ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(W - 17, y); ctx.lineTo(W - 15, y + 10); ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(W - 8, y + 7); ctx.lineTo(W - 6, y + 17); ctx.stroke();
-  }
-  // 상단 좌우 잎사귀 군집
-  drawLeafCluster(18, 35, 55, -0.35, 0);
-  drawLeafCluster(W - 18, 38, 52, Math.PI + 0.3, 1);
-  drawLeafCluster(W * 0.25, 8, 38, -0.5, 2);
-  drawLeafCluster(W * 0.78, 12, 42, 0.6, 0);
-  // 좌우 덩굴 (상단에서 내려오는 가는 선)
-  ctx.strokeStyle = 'rgba(70,130,45,0.7)';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(28, 0);
-  ctx.quadraticCurveTo(45, 40, 32, 90);
-  ctx.quadraticCurveTo(22, 130, 38, 170);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(W - 28, 0);
-  ctx.quadraticCurveTo(W - 48, 50, W - 32, 100);
-  ctx.quadraticCurveTo(W - 20, 150, W - 38, 190);
-  ctx.stroke();
-  // 덩굴 끝 작은 잎
-  drawSmallLeaf(38, 170, -0.3);
-  drawSmallLeaf(W - 38, 190, 0.3 + Math.PI);
 }
 
 function drawLeafCluster(cx, cy, size, tilt, seed) {
