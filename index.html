@@ -99,20 +99,23 @@
   }
   .score-box {
     font-weight: 800;
-    background: rgba(0,0,0,0.42);
-    padding: 6px 14px 8px;
-    border-radius: 14px;
-    backdrop-filter: blur(2px);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+    /* 파스텔 배경에 어울리는 부드러운 라벤더-화이트 카드 */
+    background: linear-gradient(180deg, rgba(255,255,255,0.85) 0%, rgba(245,235,250,0.78) 100%);
+    padding: 8px 16px 10px;
+    border-radius: 18px;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border: 1.5px solid rgba(168,139,176,0.5);
+    box-shadow: 0 3px 10px rgba(120,90,140,0.25), inset 0 1px 0 rgba(255,255,255,0.8);
     display: inline-block;
   }
   .score-row { display: flex; align-items: baseline; gap: 8px; margin-bottom: 1px; }
-  .score-label { font-size: 12px; opacity: .9; min-width: 42px; color: #fff; }
-  .score-value { font-size: 15px; color: #ffde59; font-weight: 700; }
+  .score-label { font-size: 12px; opacity: .85; min-width: 42px; color: #6B4880; font-weight: 800; letter-spacing: 0.3px; }
+  .score-value { font-size: 15px; color: #B8458F; font-weight: 800; }
   .big {
     font-size: 28px !important;
-    color: #ffb800 !important;
-    text-shadow: 0 2px 0 rgba(0,0,0,.5), 0 0 8px rgba(255,184,0,0.4);
+    color: #C2185B !important;
+    text-shadow: 0 1px 0 rgba(255,255,255,0.6), 0 0 8px rgba(216,27,96,0.25);
     font-family: 'Do Hyeon', 'Jua', sans-serif;
     letter-spacing: 0.5px;
   }
@@ -3693,23 +3696,24 @@ function ensureBgCache() {
 }
 
 function drawStaticBackground(c) {
-  // 좌우 나무 트렁크
+  // 좌우 나무 트렁크 — 라벤더 브라운 (파스텔 노을 배경에 어울림)
   const trunkW = 22;
   const lg = c.createLinearGradient(0, 0, trunkW, 0);
-  lg.addColorStop(0, '#2d1a08'); lg.addColorStop(0.5, '#5a3818'); lg.addColorStop(1, '#3d2510');
+  lg.addColorStop(0, '#7A5C82'); lg.addColorStop(0.5, '#A88BB0'); lg.addColorStop(1, '#8B6C8F');
   c.fillStyle = lg; c.fillRect(0, 0, trunkW, H);
   const rg = c.createLinearGradient(W - trunkW, 0, W, 0);
-  rg.addColorStop(0, '#3d2510'); rg.addColorStop(0.5, '#5a3818'); rg.addColorStop(1, '#2d1a08');
+  rg.addColorStop(0, '#8B6C8F'); rg.addColorStop(0.5, '#A88BB0'); rg.addColorStop(1, '#7A5C82');
   c.fillStyle = rg; c.fillRect(W - trunkW, 0, trunkW, H);
-  c.strokeStyle = 'rgba(0,0,0,0.35)'; c.lineWidth = 1;
+  // 트렁크 결 텍스처 — 부드럽게 (검정 대신 짙은 보라)
+  c.strokeStyle = 'rgba(80,55,90,0.35)'; c.lineWidth = 1;
   for (let y = 0; y < H; y += 14) {
     c.beginPath(); c.moveTo(5, y); c.lineTo(7, y + 10); c.stroke();
     c.beginPath(); c.moveTo(14, y + 7); c.lineTo(16, y + 17); c.stroke();
     c.beginPath(); c.moveTo(W - 17, y); c.lineTo(W - 15, y + 10); c.stroke();
     c.beginPath(); c.moveTo(W - 8, y + 7); c.lineTo(W - 6, y + 17); c.stroke();
   }
-  // 덩굴 줄기 (정적)
-  c.strokeStyle = 'rgba(70,130,45,0.7)'; c.lineWidth = 2;
+  // 덩굴 줄기 — 부드러운 민트 (배경 풀 색이랑 조화)
+  c.strokeStyle = 'rgba(140,180,150,0.7)'; c.lineWidth = 2;
   c.beginPath();
   c.moveTo(28, 0);
   c.quadraticCurveTo(45, 40, 32, 90);
@@ -3796,7 +3800,8 @@ function drawLeafCluster(cx, cy, size, tilt, seed) {
   ctx.save();
   ctx.translate(cx, cy);
   ctx.rotate(tilt);
-  const palette = ['#1e4a10', '#2d6a20', '#4a9030', '#3d7a28'];
+  // 부드러운 민트/세이지 톤 — 파스텔 노을 배경에 어울림
+  const palette = ['#A8D5B0', '#9DC09D', '#B8DDC0', '#88B898'];
   const leaves = [
     { x: -size * 0.45, y: 0, w: size * 0.9, h: size * 0.45, a: -0.3, c: 0 },
     { x: size * 0.1, y: -size * 0.2, w: size * 0.85, h: size * 0.4, a: -0.1, c: 1 },
@@ -3817,8 +3822,8 @@ function drawLeafCluster(cx, cy, size, tilt, seed) {
     ctx.beginPath();
     ctx.ellipse(0, 0, L.w, L.h, 0, 0, Math.PI * 2);
     ctx.fill();
-    // 잎맥
-    ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+    // 잎맥 — 부드러운 짙은 세이지
+    ctx.strokeStyle = 'rgba(80,120,90,0.4)';
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(-L.w * 0.9, 0); ctx.lineTo(L.w * 0.9, 0);
@@ -3833,13 +3838,13 @@ function drawSmallLeaf(x, y, tilt) {
   ctx.translate(x, y);
   ctx.rotate(tilt);
   const lg = ctx.createLinearGradient(-12, 0, 12, 0);
-  lg.addColorStop(0, '#2d6a20');
-  lg.addColorStop(1, '#58b23a');
+  lg.addColorStop(0, '#88B898');
+  lg.addColorStop(1, '#B8DDC0');
   ctx.fillStyle = lg;
   ctx.beginPath();
   ctx.ellipse(0, 0, 12, 5, 0, 0, Math.PI * 2);
   ctx.fill();
-  ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+  ctx.strokeStyle = 'rgba(80,120,90,0.4)';
   ctx.lineWidth = 0.8;
   ctx.beginPath();
   ctx.moveTo(-10, 0); ctx.lineTo(10, 0);
@@ -4411,48 +4416,48 @@ const WET_SPOTS = [[0.15, 0.45], [0.38, 0.55], [0.62, 0.35], [0.85, 0.6]];
 
 function drawGround() {
   const fy = H - SAFE_BOTTOM;
-  // 불투명 젖은 흙 베이스 (진한 갈색 그라데이션)
+  // 핑크빛 베이지 흙 베이스 — 파스텔 노을 배경에 어울리는 부드러운 톤
   const g = ctx.createLinearGradient(0, fy, 0, H);
-  g.addColorStop(0, '#5a3f26');
-  g.addColorStop(0.18, '#4a3018');
-  g.addColorStop(0.55, '#38220f');
-  g.addColorStop(1, '#1f1007');
+  g.addColorStop(0, '#E8D0C0');
+  g.addColorStop(0.18, '#D8B8A8');
+  g.addColorStop(0.55, '#C8A890');
+  g.addColorStop(1, '#A88878');
   ctx.fillStyle = g;
   ctx.fillRect(0, fy, W, SAFE_BOTTOM);
 
-  // 젖은 상단 윤기 (얇은 하이라이트 밴드)
+  // 상단 부드러운 하이라이트 — 파스텔 핑크 윤기
   const shine = ctx.createLinearGradient(0, fy, 0, fy + 8);
-  shine.addColorStop(0, 'rgba(180,140,90,0.45)');
-  shine.addColorStop(1, 'rgba(180,140,90,0)');
+  shine.addColorStop(0, 'rgba(255,220,210,0.55)');
+  shine.addColorStop(1, 'rgba(255,220,210,0)');
   ctx.fillStyle = shine;
   ctx.fillRect(0, fy, W, 8);
 
-  // 젖은 물 얼룩 (반사광 패치)
+  // 부드러운 윤기 패치 (이전 물얼룩 → 살짝 빛 반사 느낌)
   for (const [sx, sy] of WET_SPOTS) {
     const px = sx * W, py = fy + sy * SAFE_BOTTOM;
     const ws = ctx.createRadialGradient(px, py - 2, 0, px, py, 14);
-    ws.addColorStop(0, 'rgba(210,170,120,0.35)');
-    ws.addColorStop(0.5, 'rgba(180,140,90,0.15)');
-    ws.addColorStop(1, 'rgba(180,140,90,0)');
+    ws.addColorStop(0, 'rgba(255,235,225,0.45)');
+    ws.addColorStop(0.5, 'rgba(255,220,210,0.18)');
+    ws.addColorStop(1, 'rgba(255,220,210,0)');
     ctx.fillStyle = ws;
     ctx.beginPath();
     ctx.ellipse(px, py, 18, 7, 0, 0, Math.PI * 2);
     ctx.fill();
   }
 
-  // 흙 알갱이 (어두운+밝은 점 혼합)
+  // 흙 알갱이 — 부드러운 핑크 / 라벤더 톤으로 교체
   for (const [sx, sy, type, size] of SOIL_SPECKS) {
     const px = sx * W, py = fy + sy * SAFE_BOTTOM;
-    if (type === 'light') ctx.fillStyle = 'rgba(140,100,60,0.7)';
-    else if (type === 'dark') ctx.fillStyle = 'rgba(10,5,2,0.7)';
-    else ctx.fillStyle = 'rgba(70,45,25,0.75)';
+    if (type === 'light') ctx.fillStyle = 'rgba(255,210,200,0.65)';
+    else if (type === 'dark') ctx.fillStyle = 'rgba(150,110,120,0.55)';
+    else ctx.fillStyle = 'rgba(190,140,140,0.6)';
     ctx.beginPath();
     ctx.arc(px, py, size, 0, Math.PI * 2);
     ctx.fill();
   }
 
-  // 지면 상단 경계 (뚜렷한 흙 라인)
-  ctx.strokeStyle = 'rgba(100,70,40,0.9)';
+  // 지면 상단 경계 — 부드러운 라벤더 라인
+  ctx.strokeStyle = 'rgba(160,120,140,0.8)';
   ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.moveTo(0, fy); ctx.lineTo(W, fy);
