@@ -82,7 +82,17 @@
         inset 0 0 0 1px rgba(255,255,255,0.06);
     }
   }
-  canvas { display: block; position: absolute; inset: 0; pointer-events: none; }
+  canvas {
+    display: block; position: absolute; inset: 0; pointer-events: none;
+    /* 모바일 Safari에서 이미지 다운스케일 품질 향상 */
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: auto;
+    /* GPU 합성 강제 — 캔버스를 별도 레이어로 → 모바일에서 더 부드러움 */
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
   .hud {
     position: absolute; top: 10px; left: 14px;
     pointer-events: none; z-index: 6;
@@ -1331,7 +1341,18 @@ detectChrome();
       try { localStorage.removeItem('suika_perf_low'); } catch(e){}
     }
     // localStorage 영속 (한 번 감지되면 유지, high 강제 시엔 무시)
-    if (!forcedHigh && !isLow && localStorage.getItem('suika_perf_low') === '1') isLow = true;
+    // 단, 7일 지나면 재평가 (낮은 FPS가 일시적이었을 수 있음 — 모바일 첫 로딩 등)
+    if (!forcedHigh && !isLow) {
+      const flagTs = parseInt(localStorage.getItem('suika_perf_low_ts') || '0', 10);
+      const ageMs = Date.now() - flagTs;
+      const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
+      if (localStorage.getItem('suika_perf_low') === '1' && flagTs > 0 && ageMs < SEVEN_DAYS) {
+        isLow = true;
+      } else if (flagTs > 0 && ageMs >= SEVEN_DAYS) {
+        // 만료 → 플래그 제거하고 재평가
+        try { localStorage.removeItem('suika_perf_low'); localStorage.removeItem('suika_perf_low_ts'); } catch(e){}
+      }
+    }
   } catch(e){}
   if (isLow) {
     document.body && document.body.classList.add('perf-low');
@@ -1346,10 +1367,14 @@ detectChrome();
     const elapsed = t - start;
     if (elapsed < 1500) { requestAnimationFrame(tick); return; }
     const fps = frames * 1000 / elapsed;
-    if (fps < 40 && !window.__perfLow && !forcedHigh) {
+    // 임계값 30 (40에서 낮춤) — 첫 로딩 중 일시적 슬로우다운에 너무 민감했음
+    if (fps < 30 && !window.__perfLow && !forcedHigh) {
       window.__perfLow = true;
       document.body && document.body.classList.add('perf-low');
-      try { localStorage.setItem('suika_perf_low', '1'); } catch(e){}
+      try {
+        localStorage.setItem('suika_perf_low', '1');
+        localStorage.setItem('suika_perf_low_ts', String(Date.now()));
+      } catch(e){}
     }
   }
   requestAnimationFrame(tick);
