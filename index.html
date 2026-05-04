@@ -165,37 +165,40 @@
   }
   .item-slot {
     pointer-events: auto;
-    background: linear-gradient(180deg, #fff6d5 0%, #ffcf5a 100%);
-    border: 2.5px solid #7a4a00;
-    border-radius: 12px;
-    padding: 5px 10px;
-    color: #3a2000;
+    /* 도감 카드 톤이랑 통일 — 흰-라벤더 그라데이션 + 마젠타 보더 */
+    background: linear-gradient(180deg, #FFF5F8 0%, #F2DDF0 100%);
+    border: 2.5px solid #B8458F;
+    border-radius: 14px;
+    padding: 6px 12px;
+    color: #4A2050;
     font-family: 'Jua', sans-serif;
     cursor: pointer;
     display: flex; flex-direction: row; align-items: center; gap: 8px;
-    box-shadow: 0 3px 0 #7a4a00, 0 5px 12px rgba(0,0,0,0.5);
+    box-shadow: 0 3px 0 #8A2D6A, 0 5px 12px rgba(120,40,100,0.4);
     transition: transform 0.1s, box-shadow 0.1s;
     line-height: 1;
   }
-  .item-slot:active { transform: translateY(2px); box-shadow: 0 1px 0 #7a4a00, 0 3px 6px rgba(0,0,0,0.5); }
+  .item-slot:active { transform: translateY(2px); box-shadow: 0 1px 0 #8A2D6A, 0 3px 6px rgba(120,40,100,0.4); }
   .item-slot .icon { font-size: 22px; line-height: 1; }
-  .item-slot .desc { font-size: 13px; font-weight: 700; color: #3a2000; line-height: 1; }
+  .item-slot .desc { font-size: 13px; font-weight: 700; color: #4A2050; line-height: 1; }
   .item-slot .price-tag {
-    background: #3a2000; color: #ffde59;
+    background: #4A2050; color: #FFD9F0;
     padding: 4px 8px; border-radius: 10px;
     font-size: 12px; font-weight: 700;
     line-height: 1;
   }
   .item-slot.ready {
-    border-color: #43a047;
-    background: linear-gradient(180deg, #e8f9d5 0%, #a5dc7a 100%);
-    box-shadow: 0 0 14px rgba(100,220,100,0.7), 0 3px 0 #2a6a1a;
+    /* 사용 가능 상태 — 민트 글로우 (테마에 어울리는 차분한 그린) */
+    border-color: #5DA07A;
+    background: linear-gradient(180deg, #EAF7EE 0%, #B8DDC0 100%);
+    box-shadow: 0 0 14px rgba(120,200,140,0.65), 0 3px 0 #3A7A55;
   }
-  .item-slot.ready .desc { color: #1a4a10; font-weight: 700; }
+  .item-slot.ready .desc { color: #1F4530; font-weight: 700; }
   .item-slot.active {
-    border-color: #ff3d00;
-    background: linear-gradient(180deg, #fff0b8 0%, #ff9e40 100%);
-    box-shadow: 0 0 18px rgba(255,130,0,0.9), 0 3px 0 #a04a00;
+    /* 활성화 상태 — 강한 마젠타 펄스 */
+    border-color: #E091C4;
+    background: linear-gradient(180deg, #FFE0F0 0%, #E091C4 100%);
+    box-shadow: 0 0 18px rgba(216,27,96,0.85), 0 3px 0 #8A2D6A;
     animation: slotPulse 0.6s infinite;
   }
   @keyframes slotPulse {
@@ -350,9 +353,19 @@
     padding: 18px 22px;
     max-width: 92%;
     max-height: 92%;
-    overflow-y: auto;
+    /* X 버튼 절대 위치 기준점 + 내부 스크롤 분리 */
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
     color: #4A2050;
     box-shadow: 0 10px 30px rgba(120,40,100,0.35), inset 0 2px 0 rgba(255,255,255,0.6);
+  }
+  .dex-card-scroll {
+    overflow-y: auto;
+    flex: 1 1 auto;
+    /* X 버튼 영역 침범 방지 */
+    padding-top: 4px;
   }
   .dex-card h2 {
     margin: 0 0 12px; font-family: 'Do Hyeon', sans-serif;
@@ -370,7 +383,7 @@
     transition: width 0.3s;
   }
   .dex-grid {
-    display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 14px;
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-bottom: 14px;
   }
   .dex-cell {
     border-radius: 14px;
@@ -416,23 +429,23 @@
   .dex-cell.locked .tier-num { color: rgba(255,255,255,0.85); background: rgba(74,32,80,0.6); border-color: transparent; }
   .dex-cell .tier-name {
     text-align: center;
-    margin-top: 4px;
-    font-size: 12px;
+    margin-top: 6px;
+    font-size: 15px;
     line-height: 1.25;
-    color: #3a2000;
-    /* 다국어 대응 — 2줄까지 자연스럽게 */
-    min-height: 2.5em;       /* 1줄/2줄 케이스 모두 셀 높이 통일 */
+    color: #4A2050;
+    /* 다국어 대응 — 셀 폭이 넉넉해서 거의 1줄로 들어옴, 매우 길면 자동 줄바꿈 */
+    min-height: 1.4em;
     display: flex;
     align-items: center;
     justify-content: center;
-    word-break: keep-all;    /* 한글: 어절 단위 줄바꿈 */
-    overflow-wrap: break-word; /* 영어: 긴 단어 자동 줄바꿈 */
+    word-break: keep-all;
+    overflow-wrap: break-word;
     hyphens: auto;
-    padding: 0 2px;
+    padding: 0 4px;
   }
-  /* 12자 이상 긴 이름은 폰트 살짝 줄임 */
-  .dex-cell .tier-name.long { font-size: 11px; }
-  .dex-cell .tier-name.very-long { font-size: 10px; line-height: 1.2; }
+  /* 진짜 긴 이름만 살짝 축소 */
+  .dex-cell .tier-name.long { font-size: 13px; }
+  .dex-cell .tier-name.very-long { font-size: 11px; line-height: 1.2; }
   .dex-close {
     display: block; margin: 0 auto;
     background: linear-gradient(180deg, #E091C4 0%, #B8458F 100%);
@@ -442,22 +455,22 @@
     cursor: pointer; box-shadow: 0 3px 0 #8A2D6A;
   }
   .dex-close:active { transform: translateY(2px); box-shadow: 0 1px 0 #8A2D6A; }
-  /* 도감 우측 상단 X 버튼 — 스크롤과 무관하게 항상 보임 */
+  /* 도감 카드 내부 우측 상단 X 버튼 — 스크롤과 무관하게 항상 보임 */
   .dex-close-x {
-    position: absolute; top: 14px; right: 14px;
-    width: 38px; height: 38px;
+    position: absolute; top: 10px; right: 10px;
+    width: 32px; height: 32px;
     border-radius: 50%;
     background: #fff;
     border: 2px solid #B8458F;
     color: #B8458F;
-    font-size: 26px; font-weight: 900;
+    font-size: 22px; font-weight: 900;
     line-height: 1; padding: 0;
     cursor: pointer;
     display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 2px 8px rgba(120,40,100,0.35);
-    z-index: 31;
+    box-shadow: 0 2px 6px rgba(120,40,100,0.3);
+    z-index: 5;
   }
-  .dex-close-x:active { transform: translateY(1px); box-shadow: 0 1px 4px rgba(120,40,100,0.35); }
+  .dex-close-x:active { transform: translateY(1px); box-shadow: 0 1px 3px rgba(120,40,100,0.3); }
   .tutorial-overlay {
     position: absolute; inset: 0; z-index: 50;
     background: rgba(0,0,0,0.7);
@@ -831,9 +844,10 @@
 
   /* ═══ 위험 단계 경고 배너 (DOM) ═══ */
   #danger-banner {
-    position: absolute; left: 50%; top: 72px; transform: translate(-50%, -14px);
-    z-index: 40; padding: 6px 14px; border-radius: 14px;
-    font-size: 12px; font-weight: 900; letter-spacing: .3px;
+    /* 위치: 화면 하단 (바닥 흙 위, 포션 슬롯과 같은 라인이지만 가운데) — 대기중인 과일 안 가림 */
+    position: absolute; left: 50%; bottom: 92px; transform: translate(-50%, 14px);
+    z-index: 40; padding: 8px 18px; border-radius: 16px;
+    font-size: 13px; font-weight: 900; letter-spacing: .3px;
     white-space: nowrap; pointer-events: none;
     opacity: 0; transition: opacity .22s ease-out, transform .22s cubic-bezier(.16,1,.3,1);
     box-shadow: 0 4px 16px rgba(0,0,0,.3);
@@ -1036,15 +1050,16 @@
     </div>
   </div>
   <div class="dex-overlay" id="dexOverlay">
-    <button class="dex-close-x" id="dexCloseX" aria-label="닫기">×</button>
     <div class="dex-card">
-      <h2>🌳 과일 도감 🌳</h2>
-      <div class="dex-progress">
-        달성 <span id="dexCount">0</span> / <span id="dexTotal">11</span>
-        <div class="bar"><div class="fill" id="dexFill" style="width:0%"></div></div>
+      <button class="dex-close-x" id="dexCloseX" aria-label="닫기">×</button>
+      <div class="dex-card-scroll">
+        <h2>🌳 과일 도감 🌳</h2>
+        <div class="dex-progress">
+          달성 <span id="dexCount">0</span> / <span id="dexTotal">11</span>
+          <div class="bar"><div class="fill" id="dexFill" style="width:0%"></div></div>
+        </div>
+        <div class="dex-grid" id="dexGrid"></div>
       </div>
-      <div class="dex-grid" id="dexGrid"></div>
-      <button class="dex-close" id="dexClose">닫기</button>
     </div>
   </div>
 </div>
@@ -3058,9 +3073,9 @@ function renderDex() {
     cell.className = 'dex-cell' + (unlocked ? '' : ' locked');
     // 도감은 실제 PNG 파일 직접 사용 (drawFruit 캔버스 변환 거치지 않음)
     const fileName = _spriteFiles[i];
-    // 다국어 대응: 이름 길이에 따라 폰트 축소 클래스 부여
+    // 다국어 대응: 이름 길이에 따라 폰트 축소 클래스 부여 (2열 기준 — 셀이 넓어 임계값 완화)
     const nameLen = t.name.length;
-    const sizeClass = nameLen >= 14 ? ' very-long' : (nameLen >= 9 ? ' long' : '');
+    const sizeClass = nameLen >= 18 ? ' very-long' : (nameLen >= 13 ? ' long' : '');
     cell.innerHTML = `
       <div class="tier-num">${i + 1}</div>
       <div class="dex-sprite-wrap"><img class="dex-sprite" src="과일이미지/${fileName}.png" alt=""></div>
@@ -3078,11 +3093,7 @@ document.getElementById('dexBtn').addEventListener('click', (e) => {
   renderDex();
   document.getElementById('dexOverlay').classList.add('show');
 });
-document.getElementById('dexClose').addEventListener('click', (e) => {
-  e.stopPropagation();
-  document.getElementById('dexOverlay').classList.remove('show');
-});
-// 우측 상단 X 버튼도 같은 닫기 동작
+// 도감 닫기 — X 버튼 (하단 닫기 버튼은 제거됨)
 document.getElementById('dexCloseX').addEventListener('click', (e) => {
   e.stopPropagation();
   document.getElementById('dexOverlay').classList.remove('show');
